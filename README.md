@@ -1,2 +1,2 @@
-# Authetication service using fastapi framework
+# Authentication service using fastapi framework
 
