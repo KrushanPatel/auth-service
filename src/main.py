@@ -1,20 +1,32 @@
-from fastapi import FastAPI 
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
+from api.v1.health import router
+from db.connection import create_pool
+from db.connection import close_pool
 import uvicorn
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
 
-@app.get('/')
-@app.get('/home')
-async def home():
-    return {
-            'user':'root',
-            'message':'Welcome to auth service'
-            }
+    await create_pool()
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+    print("Database connected")
+
+    yield
+
+    await close_pool()
+
+    print("Database disconnected")
+
+
+app = FastAPI(
+    title="Auth Service",
+    lifespan=lifespan,
+)
+
+app.include_router(router)
 
 if __name__ == "__main__":
-    print("auth-service starts...")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run('main:app', host='0.0.0.0', port=8000,reload=True)
