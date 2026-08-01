@@ -153,7 +153,7 @@ auth-microservice/
 ## Clone Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/KrushanPatel/auth-service.git
 cd auth-microservice
 ```
 
