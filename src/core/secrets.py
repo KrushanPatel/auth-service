@@ -13,16 +13,15 @@ def get_db_secret() -> dict:
         response = client.get_secret_value(
             SecretId=settings.SECRET_NAME
         )
-
+        
         secret = json.loads(response["SecretString"])
-
+        
         required = [
             "username",
             "password",
             "host",
             "port",
         ]
-
         missing = [k for k in required if k not in secret]
 
         if missing:

@@ -4,7 +4,6 @@ from core.secrets import get_db_secret
 
 _pool = None
 
-
 async def create_pool():
 
     global _pool
