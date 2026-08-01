@@ -8,6 +8,8 @@ from repositories.user_repository import (
 )
 from schemas.auth import RegisterRequest, LoginRequest
 from core.security import verify_password
+from core.jwt import create_access_token
+
 
 async def register_user(request: RegisterRequest):
 
@@ -60,8 +62,8 @@ async def login_user(request: LoginRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
-
+    access_token = create_access_token(str(user["id"]))
     return {
-        "access_token": "dummy-token",
+        "access_token": access_token,
         "token_type": "bearer",
     }

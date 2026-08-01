@@ -22,6 +22,15 @@ async def get_user_by_username(username: str):
 
     return await fetch_one(query, username)
 
+async def get_user_by_id(user_id: str):
+    
+    query = """
+        SELECT *
+        FROM users
+        WHERE id = $1;
+    """
+
+    return await fetch_one(query, user_id)
 
 async def create_user(
     username: str,
@@ -55,3 +64,4 @@ async def create_user(
         first_name,
         last_name,
     )
+    

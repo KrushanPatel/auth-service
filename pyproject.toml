@@ -20,6 +20,7 @@ dependencies = [
     "python-multipart>=0.0.32",
     "sqlalchemy>=2.0.51",
     "uvicorn[standard]>=0.52.0",
+    "pyjwt>=2.13.0",
 ]
 
 [dependency-groups]
