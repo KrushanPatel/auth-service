@@ -11,7 +11,7 @@ async def health():
     result = await fetch_one(
         "SELECT version();"
     )
-
+    
     return {
         "status": "healthy",
         "database": result["version"],

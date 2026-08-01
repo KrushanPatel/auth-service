@@ -17,7 +17,7 @@ async def create_pool():
             port=int(secret["port"]),
             user=secret["username"],
             password=secret["password"],
-            database=secret.get("dbname", "postgres"),
+            database=secret["dbname"],
             ssl="require",
             min_size=5,
             max_size=20,

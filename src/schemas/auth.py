@@ -28,8 +28,8 @@ class RegisterRequest(BaseModel):
         examples=["Patel"],
     )
 
-
 class RegisterResponse(BaseModel):
+    
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -37,3 +37,11 @@ class RegisterResponse(BaseModel):
     email: EmailStr
     is_verified: bool
     message: str
+    
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
