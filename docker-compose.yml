@@ -1,0 +1,51 @@
+name: auth-microservice
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: auth-microservice:latest
+    container_name: auth-microservice
+    init: true
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import httpx; httpx.get('http://127.0.0.1:8000/health', timeout=5).raise_for_status()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    stop_grace_period: 10s
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+    internal: false
