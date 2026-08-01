@@ -1,18 +1,13 @@
 from fastapi import APIRouter, Depends
 from fastapi import Security
 from core.dependencies import get_current_user
-
+from schemas.user import UserResponse
 router = APIRouter()
 
 
-@router.get("/me")
+@router.get("/me",response_model=UserResponse)
 async def me(
     current_user=Depends(get_current_user),
 ):
-    return {
-        "id": current_user["id"],
-        "username": current_user["username"],
-        "email": current_user["email"],
-        "first_name": current_user["first_name"],
-        "last_name": current_user["last_name"],
-    }
+    return dict(current_user)
+    
