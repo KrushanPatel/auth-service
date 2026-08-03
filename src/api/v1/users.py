@@ -12,10 +12,10 @@ async def me(
 ):
     return dict(current_user)
     
-@router.patch("/update/{user_id}")
-async def update_user_api(user: UserUpdate,user_id:str,):
-
+@router.patch("/{user_id}", response_model=UserResponse)
+async def update_user_api(user: UserUpdate,current_user=Depends(get_current_user)):
     
+    user_id = dict(current_user)["id"]
     updated_user = await update_user_service(user_id, user)
 
     if not updated_user:
