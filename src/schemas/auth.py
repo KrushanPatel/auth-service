@@ -1,5 +1,6 @@
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from typing import Annotated, Literal, Dict, Optional
 
 class RegisterRequest(BaseModel):
     username: str = Field(
@@ -43,5 +44,7 @@ class LoginRequest(BaseModel):
     password: str
 
 class LoginResponse(BaseModel):
+    
     access_token: str
     token_type: str = "bearer"
+    

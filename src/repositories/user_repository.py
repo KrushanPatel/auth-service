@@ -1,5 +1,13 @@
 from db.session import execute, fetch_one
 
+ALLOWED_FIELDS = {
+    "username",
+    "email",
+    "first_name",
+    "last_name",
+    "password_hash",
+    "is_verified",
+}
 
 async def get_user_by_email(email: str):
 
@@ -10,7 +18,6 @@ async def get_user_by_email(email: str):
     """
 
     return await fetch_one(query, email)
-
 
 async def get_user_by_username(username: str):
 
@@ -64,4 +71,35 @@ async def create_user(
         first_name,
         last_name,
     )
+    
+async def update_user(user_id:str,**fields):
+    
+    updates = []
+    values = []
+    
+    for index, (key,value) in enumerate(fields.items(),start=2):
+        if key not in ALLOWED_FIELDS:
+            continue
+        
+        updates.append(f"{key} = ${index}")
+        values.append(value)
+        
+    if not updates:
+        return None
+    
+    query = f"""
+        UPDATE users
+        SET
+            {", ".join(updates)}
+        WHERE id = $1
+        RETURNING
+            id,
+            username,
+            email,
+            first_name,
+            last_name,
+            is_verified;
+    """
+    
+    return await fetch_one(query,user_id,*values)
     

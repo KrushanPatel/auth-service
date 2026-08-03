@@ -5,6 +5,7 @@ from repositories.user_repository import (
     create_user,
     get_user_by_email,
     get_user_by_username,
+    update_user
 )
 from schemas.auth import RegisterRequest, LoginRequest
 from core.security import verify_password
@@ -67,3 +68,8 @@ async def login_user(request: LoginRequest):
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+async def update_user_service(user_id: str, data):
+    update_data = data.model_dump(exclude_none=True)
+
+    return await update_user(user_id, **update_data)

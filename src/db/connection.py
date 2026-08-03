@@ -22,8 +22,7 @@ async def create_pool():
             min_size=5,
             max_size=20,
         )
-
-
+        
 async def close_pool():
 
     global _pool
