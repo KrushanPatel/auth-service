@@ -1,4 +1,5 @@
 from db.session import execute, fetch_one
+from fastapi import HTTPException,status
 
 ALLOWED_FIELDS = {
     "username",
@@ -78,14 +79,16 @@ async def update_user(user_id:str,**fields):
     values = []
     
     for index, (key,value) in enumerate(fields.items(),start=2):
+        print(f"INDEX:{index} KEY:{key} VALUE:{value}")
         if key not in ALLOWED_FIELDS:
-            continue
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid key to update user data",)
         
         updates.append(f"{key} = ${index}")
         values.append(value)
         
     if not updates:
-        return None
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="nothing to change")
     
     query = f"""
         UPDATE users

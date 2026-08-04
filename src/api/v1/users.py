@@ -6,13 +6,13 @@ from schemas.user import UserResponse, UserUpdate
 router = APIRouter()
 
 
-@router.get("/me",response_model=UserResponse)
-async def me(
+@router.get("/profile",response_model=UserResponse)
+async def profile(
     current_user=Depends(get_current_user),
 ):
     return dict(current_user)
     
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.patch("", response_model=UserResponse)
 async def update_user_api(user: UserUpdate,current_user=Depends(get_current_user)):
     
     user_id = dict(current_user)["id"]
