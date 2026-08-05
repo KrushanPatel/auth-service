@@ -9,7 +9,8 @@ from repositories.user_repository import (
 )
 from schemas.auth import RegisterRequest, LoginRequest
 from core.security import verify_password
-from core.jwt import create_access_token
+from core.jwt import create_access_token,create_refresh_token
+from services.refresh_token_service import store_refresh_token,validate_refresh_token
 
 
 async def register_user(request: RegisterRequest):
@@ -63,13 +64,37 @@ async def login_user(request: LoginRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
+
     access_token = create_access_token(str(user["id"]))
+
+    refresh_token, jti = create_refresh_token(str(user["id"]))
+
+    await store_refresh_token(
+        user_id=user["id"],
+        refresh_token=refresh_token,
+        jti=jti,
+    )
+
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 
 async def update_user_service(user_id: str, data):
-    update_data = data.model_dump(exclude_none=True)
 
+    update_data = data.model_dump(exclude_none=True)
+    
     return await update_user(user_id, **update_data)
+
+async def refresh_access_token(
+    refresh_token: str,
+):
+    user_id = await validate_refresh_token(refresh_token)
+
+    access_token = create_access_token(str(user_id))
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }

@@ -8,7 +8,6 @@ security = HTTPBearer(
     bearerFormat="JWT",
 )
 
-
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
@@ -21,7 +20,7 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(exc),
         )
-
+    
     user = await get_user_by_id(payload["sub"])
 
     if user is None:
