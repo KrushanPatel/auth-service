@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel
+from typing import Literal
 
 class RefreshToken(BaseModel):
     
@@ -14,4 +15,11 @@ class RefreshToken(BaseModel):
     revoked:bool
     
     
-        
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class RefreshTokenResponse(BaseModel):
+    access_token: str
+    refresh_token:str
+    token_type: Literal["bearer"]
+    

@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from uuid import UUID
-
+from fastapi import HTTPException,status
 from core.config import REFRESH_TOKEN_EXPIRE
-from core.jwt import verify_refresh_token
+from core.jwt import verify_refresh_token,create_access_token, create_refresh_token
 from core.security import hash_password, verify_password
 
 from repositories.refresh_token_repository import (
@@ -79,3 +79,27 @@ async def revoke_refresh_token(
     jti = UUID(payload["jti"])
 
     return await revoke_refresh_token_by_jti(jti)
+
+
+async def refresh_access_token(
+    refresh_token: str,
+):
+    try:
+        user_id = await validate_refresh_token(refresh_token)
+    except ValueError as exec:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exec)
+        )
+
+    new_token,new_jti = create_refresh_token(str(user_id))
+    await store_refresh_token(user_id,new_token,new_jti)
+    await revoke_refresh_token(refresh_token)
+        
+    access_token = create_access_token(str(user_id))
+
+    return {
+        "access_token": access_token,
+        "refresh_token":new_token,
+        "token_type": "bearer",
+    }

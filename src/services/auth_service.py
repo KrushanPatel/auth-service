@@ -7,10 +7,12 @@ from repositories.user_repository import (
     get_user_by_username,
     update_user
 )
-from schemas.auth import RegisterRequest, LoginRequest
+from schemas.auth import (
+                        RegisterRequest,                        LoginRequest,
+                        LogoutRequest)
 from core.security import verify_password
 from core.jwt import create_access_token,create_refresh_token
-from services.refresh_token_service import store_refresh_token,validate_refresh_token
+from services.refresh_token_service import store_refresh_token,revoke_refresh_token
 
 
 async def register_user(request: RegisterRequest):
@@ -87,14 +89,13 @@ async def update_user_service(user_id: str, data):
     
     return await update_user(user_id, **update_data)
 
-async def refresh_access_token(
-    refresh_token: str,
-):
-    user_id = await validate_refresh_token(refresh_token)
+async def logout_user(refresh_token:str):
 
-    access_token = create_access_token(str(user_id))
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+    try:
+        await revoke_refresh_token(refresh_token)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid refresh token"
+        )
+        pass

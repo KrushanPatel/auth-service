@@ -48,10 +48,5 @@ class LoginResponse(BaseModel):
     refresh_token: str
     token_type: Literal["bearer"]
 
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
-class RefreshTokenResponse(BaseModel):
-    access_token: str
-    token_type: Literal["bearer"]
-    
+class LogoutRequest(BaseModel):
+    refresh_token:str

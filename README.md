@@ -12,24 +12,24 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * User login
 * Password hashing using **Argon2id** (`pwdlib`)
 * JWT Access Token authentication using **PyJWT**
+* JWT Refresh Token authentication (hashed & stored in database)
+* Refresh Token rotation (old tokens revoked on refresh)
+* Logout (revokes refresh tokens)
 * JWT verification
 * Protected API endpoints using Bearer authentication
+* User profile retrieval & update
 * Request validation using **Pydantic v2**
 * Response validation using **Pydantic v2**
 * Async PostgreSQL access using **AsyncPG**
 * Database connection pooling
 * Amazon RDS PostgreSQL integration
 * AWS Secrets Manager integration
-* Health check endpoint
+* Database-aware health check endpoint
 * Docker support
 * Environment-based configuration
 
 ## 🚧 Planned
 
-* Refresh Token authentication
-* Refresh Token rotation
-* Logout
-* Token revocation / blacklisting
 * Role-Based Access Control (RBAC)
 * Email verification
 * Forgot password
@@ -68,7 +68,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 auth-microservice/
 ├── CLAUDE.md
 ├── CONTRIBUTION.md
-├── DockerFile
+├── Dockerfile
 ├── LICENSE
 ├── README.md
 ├── SKILLS.md
@@ -92,12 +92,16 @@ auth-microservice/
     │   ├── connection.py
     │   └── session.py
     ├── repositories/
+    │   ├── refresh_token_repository.py
     │   └── user_repository.py
     ├── schemas/
     │   ├── auth.py
+    │   ├── health.py
+    │   ├── refresh_token.py
     │   └── user.py
     ├── services/
-    │   └── auth_service.py
+    │   ├── auth_service.py
+    │   └── refresh_token_service.py
     ├── tests/
     └── main.py
 ```
@@ -134,6 +138,38 @@ auth-microservice/
                        │
                        ▼
             Amazon RDS PostgreSQL
+```
+
+**Refresh Token Flow**
+
+```text
+Login
+  │
+  ▼
+Generate Access Token + Refresh Token (JTI)
+  │
+  ▼
+Hash Refresh Token → Store in DB
+  │
+  ▼
+POST /api/v1/auth/refresh
+  │
+  ▼
+Verify Refresh Token Signature
+  │
+  ▼
+Lookup Token by JTI → Check Expiry & Revocation
+  │
+  ▼
+Issue New Access Token + New Refresh Token
+  │
+  ▼
+Revoke Old Refresh Token (rotation)
+
+POST /api/v1/auth/logout
+  │
+  ▼
+Revoke Refresh Token
 ```
 
 ---
@@ -228,12 +264,15 @@ http://localhost:8000/redoc
 
 # API Endpoints
 
-| Method | Endpoint                | Description              | Authentication |
-| ------ | ----------------------- | ------------------------ | -------------- |
-| POST   | `/api/v1/auth/register` | Register a new user      | No             |
-| POST   | `/api/v1/auth/login`    | Authenticate user        | No             |
-| GET    | `/api/v1/users/me`      | Get current user profile | Yes            |
-| GET    | `/health`               | Health check             | No             |
+| Method | Endpoint                      | Description                     | Authentication |
+| ------ | ----------------------------- | ------------------------------- | -------------- |
+| POST   | `/api/v1/auth/register`       | Register a new user             | No             |
+| POST   | `/api/v1/auth/login`          | Authenticate user               | No             |
+| POST   | `/api/v1/auth/refresh`        | Refresh & rotate tokens         | No             |
+| POST   | `/api/v1/auth/logout`         | Logout (revoke refresh token)   | No             |
+| GET    | `/api/v1/users/profile`       | Get current user profile        | Yes            |
+| PATCH  | `/api/v1/users`               | Update current user profile     | Yes            |
+| GET    | `/health`                     | Health check (with DB status)   | No             |
 
 ---
 
@@ -271,17 +310,70 @@ Response
 ```json
 {
     "access_token":"<jwt>",
+    "refresh_token":"<jwt>",
     "token_type":"bearer"
 }
 ```
 
 ---
 
+## Refresh Access Token
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/refresh \
+-H "Content-Type: application/json" \
+-d '{
+    "refresh_token":"<refresh-jwt>"
+}'
+```
+
+Response
+
+```json
+{
+    "access_token":"<new-jwt>",
+    "refresh_token":"<new-refresh-jwt>",
+    "token_type":"bearer"
+}
+```
+
+The old refresh token is **revoked** on refresh (rotation). Reusing it returns `400`.
+
+---
+
+## Logout
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/logout \
+-H "Content-Type: application/json" \
+-d '{
+    "refresh_token":"<refresh-jwt>"
+}'
+```
+
+Response: `204 No Content`. The refresh token is revoked and can no longer be used.
+
+---
+
 ## Access Protected Endpoint
 
 ```bash
-curl http://localhost:8000/api/v1/users/me \
+curl http://localhost:8000/api/v1/users/profile \
 -H "Authorization: Bearer <jwt>"
+```
+
+---
+
+## Update User Profile
+
+```bash
+curl -X PATCH http://localhost:8000/api/v1/users \
+-H "Authorization: Bearer <jwt>" \
+-H "Content-Type: application/json" \
+-d '{
+    "first_name":"New",
+    "last_name":"Name"
+}'
 ```
 
 ---
@@ -301,7 +393,7 @@ Login
 Verify Password
     │
     ▼
-Generate JWT Access Token
+Generate JWT Access Token + Refresh Token
     │
     ▼
 Client Stores JWT
@@ -317,6 +409,30 @@ Load User from Database
     │
     ▼
 Protected Endpoint
+    │
+    ▼
+Access Token Expires
+    │
+    ▼
+POST /api/v1/auth/refresh
+    │
+    ▼
+Validate Refresh Token (DB check)
+    │
+    ├── Valid ──► Issue New Access Token + New Refresh Token
+    │                  │
+    │                  ▼
+    │            Revoke Old Refresh Token (rotation)
+    │
+    └── Invalid/Revoked ──► 400 Bad Request
+
+POST /api/v1/auth/logout
+    │
+    ▼
+Revoke Refresh Token
+    │
+    ▼
+204 No Content
 ```
 
 ---
@@ -325,6 +441,8 @@ Protected Endpoint
 
 * Passwords are hashed using **Argon2id**.
 * Plaintext passwords are never stored.
+* Refresh tokens are hashed (Argon2id) before being stored in the database.
+* Refresh tokens are **rotated** on every refresh — old tokens are revoked immediately, limiting the damage of token theft.
 * JWT authentication uses **HS256**.
 * Database credentials are securely retrieved from **AWS Secrets Manager**.
 * PostgreSQL connections are managed using an **AsyncPG connection pool**.
@@ -349,8 +467,12 @@ uv run pytest
 * User Login
 * Password Hashing (Argon2id)
 * JWT Access Token Generation
+* JWT Refresh Token Generation & Storage
+* Refresh Token Rotation & Reuse Detection
+* Logout / Token Revocation
 * JWT Verification
 * Protected API Endpoints
+* User Profile Retrieval & Update
 * Pydantic Request Validation
 * Pydantic Response Validation
 * AsyncPG Connection Pool
@@ -363,9 +485,6 @@ uv run pytest
 
 ## 🚧 Upcoming Features
 
-* Refresh Tokens
-* Logout
-* Refresh Token Rotation
 * Email Verification
 * Forgot Password
 * Password Reset
