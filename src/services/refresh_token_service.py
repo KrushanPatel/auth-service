@@ -4,13 +4,14 @@ from fastapi import HTTPException,status
 from core.config import REFRESH_TOKEN_EXPIRE
 from core.jwt import verify_refresh_token,create_access_token, create_refresh_token
 from core.security import hash_password, verify_password
-
 from repositories.refresh_token_repository import (
     create_refresh_token_record,
     get_refresh_token_by_jti,
     revoke_refresh_token_by_jti,
     update_refresh_token_last_used,
+    delete_expired_refresh_tokens
 )
+import asyncio
 
 
 async def store_refresh_token(
@@ -103,3 +104,20 @@ async def refresh_access_token(
         "refresh_token":new_token,
         "token_type": "bearer",
     }
+
+
+async def cleanup_expired_refresh_tokens():
+    return await delete_expired_refresh_tokens()
+
+async def cleanup_task():
+    while True:
+        try:
+            await asyncio.sleep(3600)
+            await cleanup_expired_refresh_tokens()
+            print("Expired refresh token cleaned")
+
+        except asyncio.CancelledError:
+            break
+
+        except Exception as exec:
+            print(f"Cleanup Failed:{exec}")

@@ -6,16 +6,19 @@ from api.v1.auth import router as auth_router
 from api.v1.users import router as users_router
 from db.connection import create_pool
 from db.connection import close_pool
+from services.refresh_token_service import cleanup_task
 import uvicorn
+import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
     await create_pool()
     print("Database connected")
-
+    task = asyncio.create_task(cleanup_task())
     yield
 
+    task.cancel()
     await close_pool()
     print("Database disconnected")
     
