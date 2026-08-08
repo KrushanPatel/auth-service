@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from db.session import execute, fetch_one
+from db.session import execute, fetch_one, fetch_all
 
 
 async def create_refresh_token_record(
@@ -78,3 +78,15 @@ async def delete_expired_refresh_tokens():
     """
 
     await execute(query)
+
+async def revoke_all_refresh_token_for_user(user_id:UUID):
+
+    query = """
+            UPDATE refresh_tokens
+            SET revoked = TRUE
+            WHERE user_id = $1
+                AND revoked = FALSE
+            RETURNING *;
+    """ 
+
+    return await fetch_all(query,user_id)

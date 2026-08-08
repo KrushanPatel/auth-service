@@ -9,7 +9,8 @@ from repositories.refresh_token_repository import (
     get_refresh_token_by_jti,
     revoke_refresh_token_by_jti,
     update_refresh_token_last_used,
-    delete_expired_refresh_tokens
+    delete_expired_refresh_tokens,
+    revoke_all_refresh_token_for_user
 )
 import asyncio
 
@@ -52,8 +53,10 @@ async def validate_refresh_token(
         raise ValueError("Refresh token not found")
 
     if db_token["revoked"]:
-        raise ValueError("Refresh token has been revoked")
-
+        await revoke_all_refresh_token_for_user(
+            UUID(payload["sub"])
+        )
+        raise ValueError("Refresh token reuse detected")
     if db_token["expires_at"] < datetime.now(timezone.utc):
         raise ValueError("Refresh token has expired")
 
@@ -108,6 +111,7 @@ async def refresh_access_token(
 
 async def cleanup_expired_refresh_tokens():
     return await delete_expired_refresh_tokens()
+
 
 async def cleanup_task():
     while True:
