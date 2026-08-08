@@ -27,7 +27,7 @@ app = FastAPI(
 app.include_router(
     health_router,
     prefix="",
-    tags=["health"],
+    tags=["Health"],
     )
 
 app.include_router(
