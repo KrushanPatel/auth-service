@@ -1,35 +1,26 @@
-import json
-import boto3
-from botocore.exceptions import ClientError
-from core.config import settings
-from pprint import pprint
+import os
+
 
 def get_db_secret() -> dict:
-    client = boto3.client(
-        "secretsmanager",
-        region_name=settings.AWS_REGION,
-    )
-    try:
-        response = client.get_secret_value(
-            SecretId=settings.SECRET_NAME
-        )
-        secret = json.loads(response["SecretString"])
-        required = [
-            "username",
-            "password",
-            "host",
-            "port",
-        ]
-        missing = [k for k in required if k not in secret]
+    required = [
+        "DB_USERNAME",
+        "DB_PASSWORD",
+        "DB_HOST",
+        "DB_PORT",
+        "DB_NAME",
+    ]
 
-        if missing:
-            raise RuntimeError(
-                f"Missing secret keys: {missing}"
-            )
+    missing = [key for key in required if not os.getenv(key)]
 
-        return secret
-
-    except ClientError as e:
+    if missing:
         raise RuntimeError(
-            f"SecretsManager Error: {e}"
-        ) from e
+            f"Missing database environment variables: {missing}"
+        )
+
+    return {
+        "username": os.environ["DB_USERNAME"],
+        "password": os.environ["DB_PASSWORD"],
+        "host": os.environ["DB_HOST"],
+        "port": os.environ["DB_PORT"],
+        "dbname": os.environ["DB_NAME"],
+    }

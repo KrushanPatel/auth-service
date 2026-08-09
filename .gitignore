@@ -15,3 +15,8 @@ htmlcov/
 .idea/
 .vscode/
 .DS_Store
+
+##AWS ECS files
+task-definition.json
+task-definition.json.backup
+task-role-trust-policy.json
