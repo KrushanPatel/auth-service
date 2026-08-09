@@ -23,9 +23,11 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Async PostgreSQL access using **AsyncPG**
 * Database connection pooling
 * Amazon RDS PostgreSQL integration
-* AWS Secrets Manager integration
+* Refresh token reuse detection (revokes all user tokens on reuse)
+* Background cleanup of expired refresh tokens
 * Database-aware health check endpoint
 * Docker support
+* AWS ECS (Fargate) deployment with ECR & Secrets Manager
 * Environment-based configuration
 
 ## 🚧 Planned
@@ -40,7 +42,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Redis integration
 * Rate limiting
 * CI/CD pipeline
-* Kubernetes / Amazon ECS deployment
+* Kubernetes deployment
 
 ---
 
@@ -55,8 +57,8 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 | Authentication     | JWT (PyJWT)             |
 | Password Hashing   | Pwdlib (Argon2id)       |
 | Validation         | Pydantic v2             |
-| Cloud              | AWS EC2                 |
-| Secrets Management | AWS Secrets Manager     |
+| Cloud              | AWS ECS (Fargate)     |
+| Secrets Management | AWS Secrets Manager   |
 | Server             | Uvicorn                 |
 | Containerization   | Docker, Docker Compose  |
 
@@ -75,6 +77,8 @@ auth-microservice/
 ├── docker-compose.yml
 ├── pyproject.toml
 ├── requirements.txt
+├── task-definition.json
+├── task-role-trust-policy.json
 ├── uv.lock
 └── src/
     ├── api/
@@ -200,14 +204,17 @@ cd auth-microservice
 Create a `.env` file.
 
 ```env
-AWS_REGION=ap-south-1
-SECRET_NAME=dev/krushan/secrets
-
 JWT_SECRET_KEY=<32-byte-random-secret>
 ALGORITHM=HS256
+
+DB_USERNAME=<rds-username>
+DB_PASSWORD=<rds-password>
+DB_HOST=<rds-host>
+DB_PORT=5432
+DB_NAME=<database-name>
 ```
 
-Database credentials are securely retrieved from **AWS Secrets Manager**.
+Database credentials are read directly from environment variables. When deploying to AWS ECS, they are injected at runtime from **AWS Secrets Manager** (see `task-definition.json`).
 
 Example secret:
 
@@ -443,8 +450,9 @@ Revoke Refresh Token
 * Plaintext passwords are never stored.
 * Refresh tokens are hashed (Argon2id) before being stored in the database.
 * Refresh tokens are **rotated** on every refresh — old tokens are revoked immediately, limiting the damage of token theft.
+* **Reuse detection** — reusing an already-rotated/revoked refresh token revokes *all* of that user's tokens.
 * JWT authentication uses **HS256**.
-* Database credentials are securely retrieved from **AWS Secrets Manager**.
+* Database credentials are injected at runtime from **AWS Secrets Manager** (ECS) or `.env`.
 * PostgreSQL connections are managed using an **AsyncPG connection pool**.
 * Protected endpoints require a valid Bearer JWT.
 * Secrets are never committed to source control.
@@ -477,9 +485,11 @@ uv run pytest
 * Pydantic Response Validation
 * AsyncPG Connection Pool
 * Amazon RDS Integration
-* AWS Secrets Manager Integration
+* Refresh Token Reuse Detection (revoke all user tokens)
+* Background Cleanup of Expired Refresh Tokens
 * Health Check Endpoint
 * Swagger API Documentation
+* AWS ECS (Fargate) Deployment with ECR & Secrets Manager
 
 ---
 
@@ -495,7 +505,7 @@ uv run pytest
 * Redis Token Revocation
 * Rate Limiting
 * CI/CD Pipeline
-* Kubernetes / Amazon ECS Deployment
+* Kubernetes Deployment
 
 ---
 
