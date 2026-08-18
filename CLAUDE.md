@@ -4,6 +4,35 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+## Commands
+
+* Install deps: `uv sync` (do not hand-edit `uv.lock`; use `uv add <pkg>` / `uv remove <pkg>`).
+* Run dev server: `uv run uvicorn src.main:app --reload` (or `uv run src/main.py`).
+* Run via Docker: `docker compose up --build` (reads `.env`, healthcheck hits `/health`).
+* Run all tests: `uv run pytest`.
+* Run a single test: `uv run pytest src/tests/path/to/test_file.py::test_name` (tests use `pytest-asyncio`; `src/tests/` is currently empty).
+* No linter/type-checker is configured.
+
+## Architecture
+
+Strict layered flow, top to bottom:
+
+```
+api/v1/*.py (routers, request/response schemas)
+  → services/*.py       (business logic; raises HTTPException)
+    → repositories/*.py (parameterized raw SQL only; raises ValueError on invalid data)
+      → db/session.py   (fetch_one / fetch_all / execute helpers)
+        → db/connection.py (asyncpg pool; module-level singleton created/closed in main.py's lifespan)
+```
+
+* **No ORM.** SQLAlchemy/Alembic are dependencies but unused/unconfigured — all queries are raw asyncpg with `$1, $2, ...` params (see `repositories/`).
+* **Import style:** modules are imported relative to `src/` without a `src.` prefix (e.g. `from core.jwt import ...`, not `from src.core.jwt import ...`) — this only resolves when `src/` is the working directory / on the path (as uvicorn and pytest are invoked here).
+* **Auth tokens** (`core/jwt.py`, PyJWT, HS256): access tokens expire in 15 min; refresh tokens in 7 days and carry a `jti`. Refresh tokens are hashed with Argon2id (`core/security.py`, same hasher used for user passwords) before being stored via `repositories/refresh_token_repository.py`.
+* **Refresh rotation & reuse detection** (`services/refresh_token_service.py`): every `/api/v1/auth/refresh` call validates the token's `jti` against the DB, issues a new access+refresh pair, and revokes the old one. Attempting to reuse an already-revoked token revokes *all* refresh tokens for that user.
+* **Background cleanup:** `cleanup_task()` in `refresh_token_service.py` runs as an `asyncio` task started in `main.py`'s lifespan, deleting expired refresh tokens once per hour.
+* **Config/secrets:** `core/config.py` loads `JWT_SECRET_KEY`/`ALGORITHM` via `python-dotenv`. `core/secrets.py`'s `get_db_secret()` reads `DB_USERNAME`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT`/`DB_NAME` directly from the environment (in ECS these are injected by Secrets Manager into the container env — the app does not call boto3 itself).
+* **Mutable updates** (e.g. `PATCH /api/v1/users`) build their SQL `SET` clause from an `ALLOWED_FIELDS` whitelist in `repositories/user_repository.py` rather than accepting arbitrary keys.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
