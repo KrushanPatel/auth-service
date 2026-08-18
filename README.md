@@ -3,10 +3,10 @@
 FastAPI · PostgreSQL · AsyncPG · JWT · Docker
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Docker](https://img.shields.io/badge/deployment-Docker-2496ED?logo=docker&logoColor=white)
-![AWS ECS](https://img.shields.io/badge/deployment-AWS%20ECS-FF9900?logo=amazonaws&logoColor=white)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](pyproject.toml)
+[![Status](https://img.shields.io/badge/status-in%20development-yellow)](https://github.com/KrushanPatel/auth-service/issues)
+[![Docker](https://img.shields.io/badge/deployment-Docker-2496ED?logo=docker&logoColor=white)](Dockerfile)
+[![AWS ECS](https://img.shields.io/badge/deployment-AWS%20ECS-FF9900?logo=amazonaws&logoColor=white)](task-definition.json)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTION.md)
 
 A lightweight, production-ready authentication microservice built with **FastAPI**, **PostgreSQL**, and **AWS**. The service provides secure user registration, JWT-based authentication, and protected API endpoints while following a clean layered architecture suitable for production deployments.
