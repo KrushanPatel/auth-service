@@ -7,17 +7,15 @@ from db.session import execute, fetch_one
 async def create_password_reset_token_record(
     user_id: UUID,
     token_hash: str,
-    jti: UUID,
     expires_at: datetime,
 ):
     query = """
-        INSERT INTO password_reset_tokens (
+        INSERT INTO password_resets (
             user_id,
             token_hash,
-            jti,
             expires_at
         )
-        VALUES ($1, $2, $3, $4)
+        VALUES ($1, $2, $3)
         RETURNING *;
     """
 
@@ -25,39 +23,38 @@ async def create_password_reset_token_record(
         query,
         user_id,
         token_hash,
-        jti,
         expires_at,
     )
 
 
-async def get_password_reset_token_by_jti(jti: UUID):
+async def get_password_reset_token_by_hash(token_hash: str):
 
     query = """
         SELECT *
-        FROM password_reset_tokens
-        WHERE jti = $1;
+        FROM password_resets
+        WHERE token_hash = $1;
     """
 
-    return await fetch_one(query, jti)
+    return await fetch_one(query, token_hash)
 
 
-async def mark_password_reset_token_used(jti: UUID):
+async def mark_password_reset_token_used(token_id: UUID):
 
     query = """
-        UPDATE password_reset_tokens
+        UPDATE password_resets
         SET used = TRUE
-        WHERE jti = $1
+        WHERE id = $1
         RETURNING *;
     """
 
-    return await fetch_one(query, jti)
+    return await fetch_one(query, token_id)
 
 
 async def delete_expired_password_reset_tokens():
 
     query = """
         DELETE
-        FROM password_reset_tokens
+        FROM password_resets
         WHERE expires_at < NOW();
     """
 

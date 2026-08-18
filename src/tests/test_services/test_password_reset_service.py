@@ -6,8 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 import services.password_reset_service as password_reset_service
-from core.jwt import create_password_reset_token
-from core.security import hash_password
+from core.security import hash_reset_token
 
 
 async def test_request_password_reset_creates_token_for_known_user(monkeypatch):
@@ -20,7 +19,9 @@ async def test_request_password_reset_creates_token_for_known_user(monkeypatch):
 
     assert token is not None
     create_record.assert_awaited_once()
-    assert create_record.await_args.kwargs["user_id"] == user["id"]
+    kwargs = create_record.await_args.kwargs
+    assert kwargs["user_id"] == user["id"]
+    assert kwargs["token_hash"] == hash_reset_token(token)
 
 
 async def test_request_password_reset_silent_for_unknown_email(monkeypatch):
@@ -35,15 +36,17 @@ async def test_request_password_reset_silent_for_unknown_email(monkeypatch):
 
 
 async def test_reset_password_success(monkeypatch):
+    token = "a-raw-reset-token"
     user_id = uuid4()
-    token, jti = create_password_reset_token(str(user_id))
     db_token = {
+        "id": uuid4(),
+        "user_id": user_id,
         "used": False,
         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=30),
-        "token_hash": hash_password(token),
+        "token_hash": hash_reset_token(token),
     }
     monkeypatch.setattr(
-        password_reset_service, "get_password_reset_token_by_jti", AsyncMock(return_value=db_token)
+        password_reset_service, "get_password_reset_token_by_hash", AsyncMock(return_value=db_token)
     )
     mark_used = AsyncMock(return_value=None)
     monkeypatch.setattr(password_reset_service, "mark_password_reset_token_used", mark_used)
@@ -54,33 +57,34 @@ async def test_reset_password_success(monkeypatch):
 
     await password_reset_service.reset_password(token, "NewPassword@123")
 
-    mark_used.assert_awaited_once_with(jti)
     update_user.assert_awaited_once()
     assert update_user.await_args.args[0] == str(user_id)
+    mark_used.assert_awaited_once_with(db_token["id"])
     revoke_all.assert_awaited_once_with(user_id)
 
 
 async def test_reset_password_not_found(monkeypatch):
     monkeypatch.setattr(
-        password_reset_service, "get_password_reset_token_by_jti", AsyncMock(return_value=None)
+        password_reset_service, "get_password_reset_token_by_hash", AsyncMock(return_value=None)
     )
-    token, _ = create_password_reset_token(str(uuid4()))
 
     with pytest.raises(HTTPException) as exc_info:
-        await password_reset_service.reset_password(token, "NewPassword@123")
+        await password_reset_service.reset_password("not-a-real-token", "NewPassword@123")
 
     assert exc_info.value.status_code == 400
 
 
 async def test_reset_password_already_used(monkeypatch):
-    token, _ = create_password_reset_token(str(uuid4()))
+    token = "a-raw-reset-token"
     db_token = {
+        "id": uuid4(),
+        "user_id": uuid4(),
         "used": True,
         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=30),
-        "token_hash": hash_password(token),
+        "token_hash": hash_reset_token(token),
     }
     monkeypatch.setattr(
-        password_reset_service, "get_password_reset_token_by_jti", AsyncMock(return_value=db_token)
+        password_reset_service, "get_password_reset_token_by_hash", AsyncMock(return_value=db_token)
     )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -90,31 +94,16 @@ async def test_reset_password_already_used(monkeypatch):
 
 
 async def test_reset_password_expired(monkeypatch):
-    token, _ = create_password_reset_token(str(uuid4()))
+    token = "a-raw-reset-token"
     db_token = {
+        "id": uuid4(),
+        "user_id": uuid4(),
         "used": False,
         "expires_at": datetime.now(timezone.utc) - timedelta(minutes=1),
-        "token_hash": hash_password(token),
+        "token_hash": hash_reset_token(token),
     }
     monkeypatch.setattr(
-        password_reset_service, "get_password_reset_token_by_jti", AsyncMock(return_value=db_token)
-    )
-
-    with pytest.raises(HTTPException) as exc_info:
-        await password_reset_service.reset_password(token, "NewPassword@123")
-
-    assert exc_info.value.status_code == 400
-
-
-async def test_reset_password_hash_mismatch(monkeypatch):
-    token, _ = create_password_reset_token(str(uuid4()))
-    db_token = {
-        "used": False,
-        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=30),
-        "token_hash": hash_password("a-different-token"),
-    }
-    monkeypatch.setattr(
-        password_reset_service, "get_password_reset_token_by_jti", AsyncMock(return_value=db_token)
+        password_reset_service, "get_password_reset_token_by_hash", AsyncMock(return_value=db_token)
     )
 
     with pytest.raises(HTTPException) as exc_info:

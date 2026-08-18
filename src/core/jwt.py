@@ -6,13 +6,7 @@ from uuid import UUID
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 
-from core.config import (
-    ACCESS_TOKEN_EXPIRE,
-    JWT_ALGORITHM,
-    JWT_SECRET_KEY,
-    PASSWORD_RESET_TOKEN_EXPIRE,
-    REFRESH_TOKEN_EXPIRE,
-)
+from core.config import ACCESS_TOKEN_EXPIRE, JWT_ALGORITHM, JWT_SECRET_KEY, REFRESH_TOKEN_EXPIRE
 
 
 def _decode_token(token: str) -> dict[str, Any]:
@@ -84,34 +78,5 @@ def verify_refresh_token(token: str) -> dict:
 
     if "sub" not in payload or "jti" not in payload:
         raise ValueError("Invalid refresh token payload")
-
-    return payload
-
-
-def create_password_reset_token(user_id: str) -> tuple[str, UUID]:
-
-    now = datetime.now(timezone.utc)
-    jti = uuid.uuid4()
-    payload = {
-        "sub": user_id,
-        "type": "password_reset",
-        "jti": str(jti),
-        "iat": now,
-        "exp": now + PASSWORD_RESET_TOKEN_EXPIRE,
-    }
-
-    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-    return token, jti
-
-
-def verify_password_reset_token(token: str) -> dict:
-    payload = _decode_token(token)
-
-    if payload.get("type") != "password_reset":
-        raise ValueError("Invalid password reset token")
-
-    if "sub" not in payload or "jti" not in payload:
-        raise ValueError("Invalid password reset token payload")
 
     return payload

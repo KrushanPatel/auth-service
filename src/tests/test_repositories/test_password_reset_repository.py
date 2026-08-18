@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
 
 from repositories.password_reset_repository import (
     create_password_reset_token_record,
     delete_expired_password_reset_tokens,
-    get_password_reset_token_by_jti,
+    get_password_reset_token_by_hash,
     mark_password_reset_token_used,
 )
 from repositories.user_repository import create_user
@@ -24,7 +23,6 @@ async def _create_token_record(user_id, **overrides):
     data = {
         "user_id": user_id,
         "token_hash": "hashed-reset-token",
-        "jti": uuid4(),
         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=30),
     }
     data.update(overrides)
@@ -40,15 +38,15 @@ async def test_create_password_reset_token_record_defaults():
     assert record["used"] is False
 
 
-async def test_get_password_reset_token_by_jti_found_and_missing():
+async def test_get_password_reset_token_by_hash_found_and_missing():
     user = await _create_test_user()
     created = await _create_token_record(user["id"])
 
-    found = await get_password_reset_token_by_jti(created["jti"])
-    missing = await get_password_reset_token_by_jti(uuid4())
+    found = await get_password_reset_token_by_hash(created["token_hash"])
+    missing = await get_password_reset_token_by_hash("no-such-hash")
 
     assert found is not None
-    assert found["jti"] == created["jti"]
+    assert found["id"] == created["id"]
     assert missing is None
 
 
@@ -56,7 +54,7 @@ async def test_mark_password_reset_token_used_sets_flag():
     user = await _create_test_user()
     created = await _create_token_record(user["id"])
 
-    updated = await mark_password_reset_token_used(created["jti"])
+    updated = await mark_password_reset_token_used(created["id"])
 
     assert updated["used"] is True
 
@@ -64,13 +62,17 @@ async def test_mark_password_reset_token_used_sets_flag():
 async def test_delete_expired_password_reset_tokens_removes_only_expired():
     user = await _create_test_user()
     expired = await _create_token_record(
-        user["id"], expires_at=datetime.now(timezone.utc) - timedelta(minutes=1)
+        user["id"],
+        token_hash="expired-hash",
+        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
     )
     valid = await _create_token_record(
-        user["id"], expires_at=datetime.now(timezone.utc) + timedelta(minutes=1)
+        user["id"],
+        token_hash="valid-hash",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=1),
     )
 
     await delete_expired_password_reset_tokens()
 
-    assert await get_password_reset_token_by_jti(expired["jti"]) is None
-    assert await get_password_reset_token_by_jti(valid["jti"]) is not None
+    assert await get_password_reset_token_by_hash(expired["token_hash"]) is None
+    assert await get_password_reset_token_by_hash(valid["token_hash"]) is not None
