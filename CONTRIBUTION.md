@@ -109,7 +109,12 @@ uv run mypy src/
 
 ## Testing
 
+`src/tests/test_core` and `src/tests/test_services` are pure unit tests (repositories/DB mocked). `src/tests/test_repositories` and `src/tests/test_api` are integration/e2e tests that need a real Postgres — they get one via `docker-compose.test.yml` and bypass `create_pool()`'s AWS-secret/`ssl="require"` requirement by wiring a local asyncpg pool directly into `db.connection` (see `src/tests/conftest.py`).
+
 ```bash
+# Start the disposable test database (once per session)
+docker compose -f docker-compose.test.yml up -d
+
 # Run all tests
 uv run pytest
 
@@ -117,7 +122,7 @@ uv run pytest
 uv run pytest src/tests/path/to/test_file.py::test_name
 ```
 
-Tests use `pytest-asyncio`. Add tests alongside new functionality under `src/tests/`.
+Tests use `pytest-asyncio` with `asyncio_mode = "auto"` (see `pyproject.toml`) — no `@pytest.mark.asyncio` decorator needed. Add tests alongside new functionality under `src/tests/`.
 
 ---
 

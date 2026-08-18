@@ -10,7 +10,7 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 * Run dev server: `uv run uvicorn src.main:app --reload` (or `uv run src/main.py`).
 * Run via Docker: `docker compose up --build` (reads `.env`, healthcheck hits `/health`).
 * Run all tests: `uv run pytest`.
-* Run a single test: `uv run pytest src/tests/path/to/test_file.py::test_name` (tests use `pytest-asyncio`; `src/tests/` is currently empty).
+* Run a single test: `uv run pytest src/tests/path/to/test_file.py::test_name` (tests use `pytest-asyncio`, `asyncio_mode = "auto"`). Repository/API tests need Postgres: `docker compose -f docker-compose.test.yml up -d` first.
 * No linter/type-checker is configured.
 
 ## Architecture

@@ -465,7 +465,10 @@ Revoke Refresh Token
 
 # Running Tests
 
+Unit tests (`src/tests/test_core`, `src/tests/test_services`) run standalone. Repository and API tests need a real Postgres instance — start the disposable test database first:
+
 ```bash
+docker compose -f docker-compose.test.yml up -d
 uv run pytest
 ```
 
