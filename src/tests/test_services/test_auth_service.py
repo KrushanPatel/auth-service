@@ -136,9 +136,7 @@ async def test_update_user_service_excludes_none_fields(monkeypatch):
     update_user = AsyncMock(return_value={"id": str(USER_ID), "username": "new-name"})
     monkeypatch.setattr(auth_service, "update_user", update_user)
 
-    result = await auth_service.update_user_service(
-        str(USER_ID), UserUpdate(username="new-name")
-    )
+    result = await auth_service.update_user_service(str(USER_ID), UserUpdate(username="new-name"))
 
     update_user.assert_awaited_once_with(str(USER_ID), username="new-name")
     assert result["username"] == "new-name"

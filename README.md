@@ -31,6 +31,9 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Environment-based configuration
 * Linting & formatting (**Ruff**)
 * Static type checking (**Mypy**)
+* Alembic database migrations
+* CI pipeline (GitHub Actions: lint, type-check, migration check, tests)
+* Automated test suite (unit, integration, e2e)
 
 ## 🚧 Planned
 
@@ -40,10 +43,9 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Password reset
 * Multi-Factor Authentication (MFA)
 * OAuth2 / Social Login
-* Alembic database migrations
 * Redis integration
 * Rate limiting
-* CI/CD pipeline
+* CD pipeline (deploy on merge)
 * Kubernetes deployment
 
 ---
