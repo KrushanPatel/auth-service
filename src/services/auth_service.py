@@ -1,18 +1,15 @@
 from fastapi import HTTPException, status
 
-from core.security import hash_password
+from core.jwt import create_access_token, create_refresh_token
+from core.security import hash_password, verify_password
 from repositories.user_repository import (
     create_user,
     get_user_by_email,
     get_user_by_username,
-    update_user
+    update_user,
 )
-from schemas.auth import (
-                        RegisterRequest,                        LoginRequest,
-                        LogoutRequest)
-from core.security import verify_password
-from core.jwt import create_access_token,create_refresh_token
-from services.refresh_token_service import store_refresh_token,revoke_refresh_token
+from schemas.auth import LoginRequest, RegisterRequest
+from services.refresh_token_service import revoke_refresh_token, store_refresh_token
 
 
 async def register_user(request: RegisterRequest):
@@ -41,7 +38,8 @@ async def register_user(request: RegisterRequest):
         **dict(user),
         "message": "User registered successfully",
     }
-    
+
+
 async def login_user(request: LoginRequest):
 
     user = await get_user_by_email(request.email)
@@ -83,19 +81,18 @@ async def login_user(request: LoginRequest):
         "token_type": "bearer",
     }
 
+
 async def update_user_service(user_id: str, data):
 
     update_data = data.model_dump(exclude_none=True)
-    
+
     return await update_user(user_id, **update_data)
 
-async def logout_user(refresh_token:str):
+
+async def logout_user(refresh_token: str):
 
     try:
         await revoke_refresh_token(refresh_token)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid refresh token"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid refresh token")
         pass

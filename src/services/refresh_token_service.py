@@ -1,18 +1,20 @@
+import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
-from fastapi import HTTPException,status
+
+from fastapi import HTTPException, status
+
 from core.config import REFRESH_TOKEN_EXPIRE
-from core.jwt import verify_refresh_token,create_access_token, create_refresh_token
+from core.jwt import create_access_token, create_refresh_token, verify_refresh_token
 from core.security import hash_password, verify_password
 from repositories.refresh_token_repository import (
     create_refresh_token_record,
+    delete_expired_refresh_tokens,
     get_refresh_token_by_jti,
+    revoke_all_refresh_token_for_user,
     revoke_refresh_token_by_jti,
     update_refresh_token_last_used,
-    delete_expired_refresh_tokens,
-    revoke_all_refresh_token_for_user
 )
-import asyncio
 
 
 async def store_refresh_token(
@@ -53,9 +55,7 @@ async def validate_refresh_token(
         raise ValueError("Refresh token not found")
 
     if db_token["revoked"]:
-        await revoke_all_refresh_token_for_user(
-            UUID(payload["sub"])
-        )
+        await revoke_all_refresh_token_for_user(UUID(payload["sub"]))
         raise ValueError("Refresh token reuse detected")
     if db_token["expires_at"] < datetime.now(timezone.utc):
         raise ValueError("Refresh token has expired")
@@ -91,20 +91,17 @@ async def refresh_access_token(
     try:
         user_id = await validate_refresh_token(refresh_token)
     except ValueError as exec:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exec)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exec))
 
-    new_token,new_jti = create_refresh_token(str(user_id))
-    await store_refresh_token(user_id,new_token,new_jti)
+    new_token, new_jti = create_refresh_token(str(user_id))
+    await store_refresh_token(user_id, new_token, new_jti)
     await revoke_refresh_token(refresh_token)
-        
+
     access_token = create_access_token(str(user_id))
 
     return {
         "access_token": access_token,
-        "refresh_token":new_token,
+        "refresh_token": new_token,
         "token_type": "bearer",
     }
 

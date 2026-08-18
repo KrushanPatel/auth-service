@@ -13,9 +13,7 @@ def get_db_secret() -> dict:
     missing = [key for key in required if not os.getenv(key)]
 
     if missing:
-        raise RuntimeError(
-            f"Missing database environment variables: {missing}"
-        )
+        raise RuntimeError(f"Missing database environment variables: {missing}")
 
     return {
         "username": os.environ["DB_USERNAME"],

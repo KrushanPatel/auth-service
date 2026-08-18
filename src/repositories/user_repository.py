@@ -1,5 +1,6 @@
-from db.session import execute, fetch_one
-from fastapi import HTTPException,status
+from fastapi import HTTPException, status
+
+from db.session import fetch_one
 
 ALLOWED_FIELDS = {
     "username",
@@ -9,6 +10,7 @@ ALLOWED_FIELDS = {
     "password_hash",
     "is_verified",
 }
+
 
 async def get_user_by_email(email: str):
 
@@ -20,6 +22,7 @@ async def get_user_by_email(email: str):
 
     return await fetch_one(query, email)
 
+
 async def get_user_by_username(username: str):
 
     query = """
@@ -30,8 +33,9 @@ async def get_user_by_username(username: str):
 
     return await fetch_one(query, username)
 
+
 async def get_user_by_id(user_id: str):
-    
+
     query = """
         SELECT *
         FROM users
@@ -39,6 +43,7 @@ async def get_user_by_id(user_id: str):
     """
 
     return await fetch_one(query, user_id)
+
 
 async def create_user(
     username: str,
@@ -72,24 +77,29 @@ async def create_user(
         first_name,
         last_name,
     )
-    
-async def update_user(user_id:str,**fields):
-    
+
+
+async def update_user(user_id: str, **fields):
+
     updates = []
     values = []
-    
-    for index, (key,value) in enumerate(fields.items(),start=2):
+
+    for index, (key, value) in enumerate(fields.items(), start=2):
         print(f"INDEX:{index} KEY:{key} VALUE:{value}")
         if key not in ALLOWED_FIELDS:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="invalid key to update user data",)
-        
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid key to update user data",
+            )
+
         updates.append(f"{key} = ${index}")
         values.append(value)
-        
+
     if not updates:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="nothing to change")
-    
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="nothing to change"
+        )
+
     query = f"""
         UPDATE users
         SET
@@ -103,6 +113,5 @@ async def update_user(user_id:str,**fields):
             last_name,
             is_verified;
     """
-    
-    return await fetch_one(query,user_id,*values)
-    
+
+    return await fetch_one(query, user_id, *values)
