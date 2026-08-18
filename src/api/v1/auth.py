@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Response, status
 
 from schemas.auth import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     LoginResponse,
     LogoutRequest,
     RegisterRequest,
     RegisterResponse,
+    ResetPasswordRequest,
 )
 from schemas.refresh_token import RefreshTokenRequest, RefreshTokenResponse
 from services.auth_service import login_user, logout_user, register_user
+from services.password_reset_service import request_password_reset
+from services.password_reset_service import reset_password as reset_password_service
 from services.refresh_token_service import (
     refresh_access_token,
 )
@@ -40,4 +45,21 @@ async def refresh_token(
 async def logout(request: LogoutRequest):
 
     await logout_user(request.refresh_token)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(request: ForgotPasswordRequest):
+
+    await request_password_reset(request.email)
+
+    return {
+        "message": "If that email is registered, a password reset link has been sent.",
+    }
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+async def reset_password(request: ResetPasswordRequest):
+
+    await reset_password_service(request.token, request.new_password)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

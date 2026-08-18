@@ -14,6 +14,7 @@ TEST_DB_PASSWORD = os.getenv("TEST_DB_PASSWORD", "test")
 TEST_DB_NAME = os.getenv("TEST_DB_NAME", "auth_test")
 
 SCHEMA_SQL = """
+DROP TABLE IF EXISTS password_reset_tokens;
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS users;
 
@@ -38,6 +39,16 @@ CREATE TABLE refresh_tokens (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_used_at TIMESTAMPTZ,
     revoked BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE password_reset_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL,
+    jti UUID UNIQUE NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    used BOOLEAN NOT NULL DEFAULT FALSE
 );
 """
 
@@ -74,7 +85,9 @@ async def test_pool():
 @pytest.fixture
 async def clean_db(test_pool):
     async with test_pool.acquire() as conn:
-        await conn.execute("TRUNCATE TABLE refresh_tokens, users RESTART IDENTITY CASCADE;")
+        await conn.execute(
+            "TRUNCATE TABLE password_reset_tokens, refresh_tokens, users RESTART IDENTITY CASCADE;"
+        )
     yield
 
 

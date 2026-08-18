@@ -24,7 +24,8 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Database connection pooling
 * Amazon RDS PostgreSQL integration
 * Refresh token reuse detection (revokes all user tokens on reuse)
-* Background cleanup of expired refresh tokens
+* Password reset (forgot-password/reset-password, single-use token, revokes existing sessions)
+* Background cleanup of expired refresh tokens and password reset tokens
 * Database-aware health check endpoint
 * Docker support
 * AWS ECS (Fargate) deployment with ECR & Secrets Manager
@@ -39,8 +40,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 
 * Role-Based Access Control (RBAC)
 * Email verification
-* Forgot password
-* Password reset
+* Real email delivery for password reset (currently logged server-side, not emailed)
 * Multi-Factor Authentication (MFA)
 * OAuth2 / Social Login
 * Redis integration
@@ -283,6 +283,8 @@ http://localhost:8000/redoc
 | POST   | `/api/v1/auth/login`          | Authenticate user               | No             |
 | POST   | `/api/v1/auth/refresh`        | Refresh & rotate tokens         | No             |
 | POST   | `/api/v1/auth/logout`         | Logout (revoke refresh token)   | No             |
+| POST   | `/api/v1/auth/forgot-password`| Request a password reset token  | No             |
+| POST   | `/api/v1/auth/reset-password` | Reset password using a token    | No             |
 | GET    | `/api/v1/users/profile`       | Get current user profile        | Yes            |
 | PATCH  | `/api/v1/users`               | Update current user profile     | Yes            |
 | GET    | `/health`                     | Health check (with DB status)   | No             |

@@ -15,6 +15,7 @@ from repositories.refresh_token_repository import (
     revoke_refresh_token_by_jti,
     update_refresh_token_last_used,
 )
+from services.password_reset_service import cleanup_expired_password_reset_tokens
 
 
 async def store_refresh_token(
@@ -115,6 +116,7 @@ async def cleanup_task():
         try:
             await asyncio.sleep(3600)
             await cleanup_expired_refresh_tokens()
+            await cleanup_expired_password_reset_tokens()
             print("Expired refresh token cleaned")
 
         except asyncio.CancelledError:
