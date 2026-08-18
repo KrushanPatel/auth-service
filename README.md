@@ -29,6 +29,8 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Docker support
 * AWS ECS (Fargate) deployment with ECR & Secrets Manager
 * Environment-based configuration
+* Linting & formatting (**Ruff**)
+* Static type checking (**Mypy**)
 
 ## 🚧 Planned
 
@@ -61,6 +63,8 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 | Secrets Management | AWS Secrets Manager   |
 | Server             | Uvicorn                 |
 | Containerization   | Docker, Docker Compose  |
+| Linting/Formatting | Ruff                    |
+| Type Checking      | Mypy                    |
 
 ---
 
@@ -467,6 +471,16 @@ uv run pytest
 
 ---
 
+# Linting & Type Checking
+
+```bash
+uv run ruff check .
+uv run ruff format .
+uv run mypy src
+```
+
+---
+
 # Current Progress
 
 ## ✅ Completed
@@ -490,6 +504,8 @@ uv run pytest
 * Health Check Endpoint
 * Swagger API Documentation
 * AWS ECS (Fargate) Deployment with ECR & Secrets Manager
+* Linting & Formatting (Ruff)
+* Static Type Checking (Mypy)
 
 ---
 
