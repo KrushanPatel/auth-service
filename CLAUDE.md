@@ -11,7 +11,10 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 * Run via Docker: `docker compose up --build` (reads `.env`, healthcheck hits `/health`).
 * Run all tests: `uv run pytest`.
 * Run a single test: `uv run pytest src/tests/path/to/test_file.py::test_name` (tests use `pytest-asyncio`, `asyncio_mode = "auto"`). Repository/API tests need Postgres: `docker compose -f docker-compose.test.yml up -d` first.
-* No linter/type-checker is configured.
+* Lint: `uv run ruff check .`. Format check: `uv run ruff format --check .` (apply with `uv run ruff format .`).
+* Type-check: `uv run mypy src`.
+* Migrations: `uv run alembic upgrade head` / `uv run alembic downgrade base`; new revision: `uv run alembic revision -m "..."`.
+* CI (`.github/workflows/ci.yml`) runs ruff check, ruff format --check, mypy, an alembic upgrade+downgrade round-trip, then pytest, all against a `postgres:16-alpine` service container.
 
 ## Architecture
 
