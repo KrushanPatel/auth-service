@@ -1,4 +1,7 @@
-from unittest.mock import MagicMock
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 import core.email as email
 
@@ -40,3 +43,37 @@ async def test_send_password_reset_email_swallows_smtp_errors(monkeypatch):
     monkeypatch.setattr(email.smtplib, "SMTP", MagicMock(side_effect=OSError("connection refused")))
 
     await email.send_password_reset_email("user@example.com", "sometoken")
+
+
+async def test_schedule_password_reset_email_runs_in_background(monkeypatch):
+    send_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(email, "send_password_reset_email", send_mock)
+
+    task = email.schedule_password_reset_email("user@example.com", "sometoken")
+    assert isinstance(task, asyncio.Task)
+
+    await task
+
+    send_mock.assert_awaited_once_with("user@example.com", "sometoken")
+
+
+def test_validate_email_config_raises_in_production_without_smtp(monkeypatch):
+    monkeypatch.setattr(email, "ENV", "production")
+    monkeypatch.setattr(email, "SMTP_HOST", None)
+
+    with pytest.raises(RuntimeError):
+        email.validate_email_config()
+
+
+def test_validate_email_config_allows_development_without_smtp(monkeypatch):
+    monkeypatch.setattr(email, "ENV", "development")
+    monkeypatch.setattr(email, "SMTP_HOST", None)
+
+    email.validate_email_config()
+
+
+def test_validate_email_config_allows_production_with_smtp(monkeypatch):
+    monkeypatch.setattr(email, "ENV", "production")
+    monkeypatch.setattr(email, "SMTP_HOST", "smtp.example.com")
+
+    email.validate_email_config()

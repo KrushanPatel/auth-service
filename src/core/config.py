@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ENV = os.getenv("ENV", "development")
+
 JWT_SECRET_KEY = os.getenv(
     "JWT_SECRET_KEY",
     "change-this-in-production",

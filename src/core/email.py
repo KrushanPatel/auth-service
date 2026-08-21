@@ -5,6 +5,7 @@ from email.message import EmailMessage
 
 from core.config import (
     EMAIL_FROM_ADDRESS,
+    ENV,
     PASSWORD_RESET_URL_BASE,
     SMTP_HOST,
     SMTP_PASSWORD,
@@ -13,6 +14,17 @@ from core.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+_background_tasks: set[asyncio.Task] = set()
+
+
+def validate_email_config() -> None:
+    """
+    Fail fast at startup rather than silently falling back to logging reset
+    links instead of emailing them once deployed to production.
+    """
+    if ENV == "production" and not SMTP_HOST:
+        raise RuntimeError("SMTP_HOST is not set; cannot send password reset emails in production")
 
 
 def _send_password_reset_email_sync(to_email: str, token: str) -> None:
@@ -49,3 +61,15 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
     not delivery succeeds, to avoid leaking account existence via errors.
     """
     await asyncio.to_thread(_send_password_reset_email_sync, to_email, token)
+
+
+def schedule_password_reset_email(to_email: str, token: str) -> asyncio.Task:
+    """
+    Fire-and-forget: schedules delivery without making the caller wait on
+    SMTP. A reference to the task is kept until it finishes so it isn't
+    garbage-collected mid-flight.
+    """
+    task = asyncio.create_task(send_password_reset_email(to_email, token))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+    return task
