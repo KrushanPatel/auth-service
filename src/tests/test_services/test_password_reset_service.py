@@ -14,6 +14,8 @@ async def test_request_password_reset_creates_token_for_known_user(monkeypatch):
     monkeypatch.setattr(password_reset_service, "get_user_by_email", AsyncMock(return_value=user))
     create_record = AsyncMock(return_value=None)
     monkeypatch.setattr(password_reset_service, "create_password_reset_token_record", create_record)
+    send_email = AsyncMock(return_value=None)
+    monkeypatch.setattr(password_reset_service, "send_password_reset_email", send_email)
 
     token = await password_reset_service.request_password_reset("krushan@example.com")
 
@@ -22,17 +24,21 @@ async def test_request_password_reset_creates_token_for_known_user(monkeypatch):
     kwargs = create_record.await_args.kwargs
     assert kwargs["user_id"] == user["id"]
     assert kwargs["token_hash"] == hash_reset_token(token)
+    send_email.assert_awaited_once_with("krushan@example.com", token)
 
 
 async def test_request_password_reset_silent_for_unknown_email(monkeypatch):
     monkeypatch.setattr(password_reset_service, "get_user_by_email", AsyncMock(return_value=None))
     create_record = AsyncMock(return_value=None)
     monkeypatch.setattr(password_reset_service, "create_password_reset_token_record", create_record)
+    send_email = AsyncMock(return_value=None)
+    monkeypatch.setattr(password_reset_service, "send_password_reset_email", send_email)
 
     token = await password_reset_service.request_password_reset("nobody@example.com")
 
     assert token is None
     create_record.assert_not_awaited()
+    send_email.assert_not_awaited()
 
 
 async def test_reset_password_success(monkeypatch):

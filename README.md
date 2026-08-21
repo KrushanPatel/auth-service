@@ -33,7 +33,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Database connection pooling
 * Amazon RDS PostgreSQL integration
 * Refresh token reuse detection (revokes all user tokens on reuse)
-* Password reset (forgot-password/reset-password, single-use token, revokes existing sessions)
+* Password reset (forgot-password/reset-password, single-use token, revokes existing sessions), delivered by email via SMTP (falls back to server-side logging if SMTP isn't configured)
 * Background cleanup of expired refresh tokens and password reset tokens
 * Database-aware health check endpoint
 * Docker support
@@ -49,7 +49,6 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 
 * Role-Based Access Control (RBAC)
 * Email verification
-* Real email delivery for password reset (currently logged server-side, not emailed)
 * Multi-Factor Authentication (MFA)
 * OAuth2 / Social Login
 * Redis integration
@@ -227,9 +226,18 @@ DB_PASSWORD=<rds-password>
 DB_HOST=<rds-host>
 DB_PORT=5432
 DB_NAME=<database-name>
+
+SMTP_HOST=<smtp-host>
+SMTP_PORT=587
+SMTP_USERNAME=<smtp-username>
+SMTP_PASSWORD=<smtp-password>
+EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
+PASSWORD_RESET_URL_BASE=https://yourapp.com/reset-password
 ```
 
 Database credentials are read directly from environment variables. When deploying to AWS ECS, they are injected at runtime from **AWS Secrets Manager** (see `task-definition.json`).
+
+`SMTP_*` configures delivery of password reset emails. If `SMTP_HOST` is unset, the reset link is logged server-side instead of emailed (useful for local development). Any SMTP provider works, including [Amazon SES's SMTP interface](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html) for production.
 
 Example secret:
 

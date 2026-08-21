@@ -15,3 +15,12 @@ JWT_ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE = timedelta(minutes=15)
 REFRESH_TOKEN_EXPIRE = timedelta(days=7)
 PASSWORD_RESET_TOKEN_EXPIRE = timedelta(minutes=30)
+
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+EMAIL_FROM_ADDRESS = os.getenv("EMAIL_FROM_ADDRESS", "no-reply@example.com")
+PASSWORD_RESET_URL_BASE = os.getenv(
+    "PASSWORD_RESET_URL_BASE", "http://localhost:3000/reset-password"
+)

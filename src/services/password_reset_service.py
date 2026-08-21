@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 
 from core.config import PASSWORD_RESET_TOKEN_EXPIRE
+from core.email import send_password_reset_email
 from core.security import hash_password, hash_reset_token
 from repositories.password_reset_repository import (
     create_password_reset_token_record,
@@ -38,7 +39,7 @@ async def request_password_reset(email: str) -> str | None:
         expires_at=expires_at,
     )
 
-    print(f"Password reset requested for {email}: token={token}")
+    await send_password_reset_email(email, token)
 
     return token
 
