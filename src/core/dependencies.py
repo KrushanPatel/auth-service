@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -36,5 +38,14 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is disabled",
         )
+
+    tokens_valid_after = user["tokens_valid_after"]
+    if tokens_valid_after is not None:
+        issued_at = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
+        if issued_at < tokens_valid_after:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+            )
 
     return user

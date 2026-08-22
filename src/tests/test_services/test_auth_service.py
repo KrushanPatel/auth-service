@@ -145,10 +145,30 @@ async def test_update_user_service_excludes_none_fields(monkeypatch):
 async def test_logout_user_revokes_token(monkeypatch):
     revoke_refresh_token = AsyncMock(return_value=None)
     monkeypatch.setattr(auth_service, "revoke_refresh_token", revoke_refresh_token)
+    update_user = AsyncMock()
+    monkeypatch.setattr(auth_service, "update_user", update_user)
 
     await auth_service.logout_user("some-refresh-token")
 
     revoke_refresh_token.assert_awaited_once_with("some-refresh-token")
+    update_user.assert_not_awaited()
+
+
+async def test_logout_user_invalidates_access_tokens(monkeypatch):
+    monkeypatch.setattr(
+        auth_service,
+        "revoke_refresh_token",
+        AsyncMock(return_value={"user_id": USER_ID}),
+    )
+    update_user = AsyncMock()
+    monkeypatch.setattr(auth_service, "update_user", update_user)
+
+    await auth_service.logout_user("some-refresh-token")
+
+    update_user.assert_awaited_once()
+    args, kwargs = update_user.await_args
+    assert args[0] == str(USER_ID)
+    assert "tokens_valid_after" in kwargs
 
 
 async def test_logout_user_invalid_token(monkeypatch):

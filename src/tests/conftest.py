@@ -27,7 +27,8 @@ CREATE TABLE users (
     last_name VARCHAR(100) NOT NULL,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    tokens_valid_after TIMESTAMPTZ
 );
 
 CREATE TABLE refresh_tokens (

@@ -82,3 +82,24 @@ async def test_logout_revokes_refresh_token(client):
         "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
     )
     assert refresh_response.status_code == 400
+
+
+async def test_logout_invalidates_access_token_immediately(client):
+    tokens = await register_and_login(client)
+
+    profile_response = await client.get(
+        "/api/v1/users/profile",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+    )
+    assert profile_response.status_code == 200
+
+    logout_response = await client.post(
+        "/api/v1/auth/logout", json={"refresh_token": tokens["refresh_token"]}
+    )
+    assert logout_response.status_code == 204
+
+    profile_after_logout = await client.get(
+        "/api/v1/users/profile",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+    )
+    assert profile_after_logout.status_code == 401

@@ -9,6 +9,7 @@ ALLOWED_FIELDS = {
     "last_name",
     "password_hash",
     "is_verified",
+    "tokens_valid_after",
 }
 
 

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 
 from core.jwt import create_access_token, create_refresh_token
@@ -92,7 +94,12 @@ async def update_user_service(user_id: str, data):
 async def logout_user(refresh_token: str):
 
     try:
-        await revoke_refresh_token(refresh_token)
+        revoked = await revoke_refresh_token(refresh_token)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid refresh token")
-        pass
+
+    if revoked:
+        await update_user(
+            str(revoked["user_id"]),
+            tokens_valid_after=datetime.now(timezone.utc),
+        )
