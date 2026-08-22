@@ -39,11 +39,12 @@ SMTP_USERNAME=<smtp-username>
 SMTP_PASSWORD=<smtp-password>
 EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
 PASSWORD_RESET_URL_BASE=https://yourapp.com/reset-password
+EMAIL_VERIFICATION_URL_BASE=https://yourapp.com/verify-email
 ```
 
 Database credentials are read directly from environment variables. When deploying to AWS ECS, they are injected at runtime from **AWS Secrets Manager** (see `task-definition.json`).
 
-`SMTP_*` configures delivery of password reset emails. If `SMTP_HOST` is unset, the reset link is logged server-side instead of emailed (useful for local development). Any SMTP provider works, including [Amazon SES's SMTP interface](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html) for production.
+`SMTP_*` configures delivery of password reset and email verification emails. If `SMTP_HOST` is unset, the link is logged server-side instead of emailed (useful for local development). Any SMTP provider works, including [Amazon SES's SMTP interface](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html) for production.
 
 Example secret:
 
@@ -108,11 +109,15 @@ http://localhost:8000/redoc
 | POST   | `/api/v1/auth/logout`          | Logout (revoke refresh token, invalidate access tokens) | No |
 | POST   | `/api/v1/auth/forgot-password` | Request a password reset token   | No             |
 | POST   | `/api/v1/auth/reset-password`  | Reset password using a token     | No             |
+| POST   | `/api/v1/auth/verify-email`    | Verify email using a token       | No             |
+| POST   | `/api/v1/auth/resend-verification` | Re-send the verification email | No         |
 | GET    | `/api/v1/users/profile`        | Get current user profile         | Yes            |
 | PATCH  | `/api/v1/users`                | Update current user profile      | Yes            |
 | GET    | `/health`                      | Health check (with DB status)    | No             |
 
-`/register`, `/login`, and `/forgot-password` are rate limited by client IP, and (for `/login` and `/forgot-password`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
+`/register`, `/login`, `/forgot-password`, and `/resend-verification` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
+
+New accounts must verify their email before `/login` will succeed — see [Verify Email](#verify-email) below.
 
 ---
 
@@ -131,6 +136,30 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
     "last_name":"Patel"
 }'
 ```
+
+### Verify Email
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/verify-email \
+-H "Content-Type: application/json" \
+-d '{
+    "token":"<verification-token>"
+}'
+```
+
+Response: `204 No Content`. Required before `/login` will succeed for a new account.
+
+### Resend Verification
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/resend-verification \
+-H "Content-Type: application/json" \
+-d '{
+    "email":"krushan@gmail.com"
+}'
+```
+
+Returns the same generic message whether or not the email is registered or already verified (no enumeration).
 
 ### Login
 

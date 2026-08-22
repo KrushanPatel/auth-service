@@ -8,10 +8,14 @@ from schemas.auth import (
     LogoutRequest,
     RegisterRequest,
     RegisterResponse,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     ResetPasswordRequest,
+    VerifyEmailRequest,
 )
 from schemas.refresh_token import RefreshTokenRequest, RefreshTokenResponse
 from services.auth_service import login_user, logout_user, register_user
+from services.email_verification_service import request_email_verification, verify_email
 from services.password_reset_service import request_password_reset
 from services.password_reset_service import reset_password as reset_password_service
 from services.rate_limit_service import enforce_rate_limit
@@ -71,3 +75,23 @@ async def reset_password(request: ResetPasswordRequest):
 
     await reset_password_service(request.token, request.new_password)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/verify-email", status_code=status.HTTP_204_NO_CONTENT)
+async def verify_email_route(request: VerifyEmailRequest):
+
+    await verify_email(request.token)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/resend-verification", response_model=ResendVerificationResponse)
+async def resend_verification(request: ResendVerificationRequest, http_request: Request):
+
+    await enforce_rate_limit(
+        "resend_verification", _client_ip(http_request), account_key=request.email
+    )
+    await request_email_verification(request.email)
+
+    return {
+        "message": "If that email is registered and unverified, a verification link has been sent.",
+    }

@@ -1,4 +1,4 @@
-from helpers import login_user, register_and_login, register_user
+from helpers import login_user, register_and_login, register_user, verify_user_email
 
 
 async def test_register_returns_created_user(client):
@@ -22,6 +22,7 @@ async def test_register_duplicate_email_conflicts(client):
 
 async def test_login_success_returns_tokens(client):
     await register_user(client)
+    await verify_user_email(client)
 
     response = await login_user(client)
 
@@ -34,10 +35,19 @@ async def test_login_success_returns_tokens(client):
 
 async def test_login_wrong_password_rejected(client):
     await register_user(client)
+    await verify_user_email(client)
 
     response = await login_user(client, password="wrong-password")
 
     assert response.status_code == 401
+
+
+async def test_login_unverified_account_rejected(client):
+    await register_user(client)
+
+    response = await login_user(client)
+
+    assert response.status_code == 403
 
 
 async def test_login_unknown_email_rejected(client):

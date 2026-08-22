@@ -18,9 +18,10 @@
 * AsyncPG Connection Pool
 * Amazon RDS Integration
 * Forgot Password / Password Reset (single-use token, revokes sessions)
-* SMTP Email Delivery for Password Reset (falls back to server-side logging)
-* Rate Limiting (register/login/forgot-password, by IP and by account)
-* Background Cleanup of Expired Refresh Tokens, Password Reset Tokens, and Rate-Limit Windows
+* Email Verification (login blocked until verified; verify-email/resend-verification)
+* SMTP Email Delivery for Password Reset and Email Verification (falls back to server-side logging)
+* Rate Limiting (register/login/forgot-password/resend-verification, by IP and by account)
+* Background Cleanup of Expired Refresh Tokens, Password Reset Tokens, Email Verification Tokens, and Rate-Limit Windows
 * Health Check Endpoint
 * Swagger API Documentation
 * Alembic Migrations
@@ -33,7 +34,6 @@
 
 ## 🚧 Upcoming Features
 
-* Email Verification
 * Multi-Factor Authentication (MFA)
 * Role-Based Access Control (RBAC)
 * OAuth2 / Social Login

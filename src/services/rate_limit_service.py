@@ -9,6 +9,7 @@ IP_LIMITS: dict[str, tuple[int, timedelta]] = {
     "login": (20, timedelta(minutes=1)),
     "register": (10, timedelta(minutes=1)),
     "forgot_password": (10, timedelta(minutes=1)),
+    "resend_verification": (10, timedelta(minutes=1)),
 }
 
 # (limit, window) per action, keyed by the account identifier (email) the
@@ -16,6 +17,7 @@ IP_LIMITS: dict[str, tuple[int, timedelta]] = {
 ACCOUNT_LIMITS: dict[str, tuple[int, timedelta]] = {
     "login": (5, timedelta(minutes=15)),
     "forgot_password": (3, timedelta(hours=1)),
+    "resend_verification": (3, timedelta(hours=1)),
 }
 
 MAX_RATE_LIMIT_WINDOW = max(

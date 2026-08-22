@@ -37,6 +37,7 @@ auth-microservice/
     │   ├── connection.py
     │   └── session.py
     ├── repositories/
+    │   ├── email_verification_repository.py
     │   ├── password_reset_repository.py
     │   ├── rate_limit_repository.py
     │   ├── refresh_token_repository.py
@@ -48,6 +49,7 @@ auth-microservice/
     │   └── user.py
     ├── services/
     │   ├── auth_service.py
+    │   ├── email_verification_service.py
     │   ├── password_reset_service.py
     │   ├── rate_limit_service.py
     │   └── refresh_token_service.py
@@ -127,6 +129,35 @@ Stamp user's tokens_valid_after = now()
 Any access token issued before that instant is rejected on next use
 ```
 
+## Email Verification Flow
+
+```text
+Register
+  │
+  ▼
+Create User (is_verified = false)
+  │
+  ▼
+Issue Verification Token → Store Hash in DB → Send Email (SMTP or logged)
+  │
+  ▼
+POST /api/v1/auth/verify-email
+  │
+  ▼
+Validate Token (exists, unused, unexpired)
+  │
+  ▼
+Set is_verified = true, Mark Token Used
+
+POST /api/v1/auth/resend-verification
+  │
+  ▼
+Look Up Email → If Registered & Unverified: Issue New Token
+  │
+  ▼
+Same Generic Response Either Way (no enumeration)
+```
+
 ## Authentication Flow
 
 ```text
@@ -137,6 +168,9 @@ Store Argon2id Password Hash
     │
     ▼
 Login
+    │
+    ▼
+Check is_active and is_verified (403 if either fails)
     │
     ▼
 Verify Password
@@ -197,8 +231,9 @@ Revoke Refresh Token + Invalidate Access Tokens
 * Refresh tokens are **rotated** on every refresh — old tokens are revoked immediately, limiting the damage of token theft.
 * **Reuse detection** — reusing an already-rotated/revoked refresh token revokes *all* of that user's tokens.
 * **Logout invalidates access tokens immediately** — a per-user `tokens_valid_after` timestamp is checked on every request, so a stolen/copied access token stops working the moment its owner logs out, not just when it naturally expires (up to 15 minutes later).
+* **Email verification is required to log in** — new accounts start with `is_verified = false`; `/login` returns 403 until the account is verified via a single-use, expiring token emailed at registration (or re-issued via `/resend-verification`).
 * JWT authentication uses **HS256**.
-* **Rate limiting** on `/register`, `/login`, and `/forgot-password` — both by client IP and by target account — to blunt brute-force login attempts and password-reset email spam.
+* **Rate limiting** on `/register`, `/login`, `/forgot-password`, and `/resend-verification` — both by client IP and by target account — to blunt brute-force login attempts and password-reset/verification email spam.
 * Database credentials are injected at runtime from **AWS Secrets Manager** (ECS) or `.env`.
 * PostgreSQL connections are managed using an **AsyncPG connection pool**.
 * Protected endpoints require a valid Bearer JWT.

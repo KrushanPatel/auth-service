@@ -15,6 +15,7 @@ TEST_DB_NAME = os.getenv("TEST_DB_NAME", "auth_test")
 
 SCHEMA_SQL = """
 DROP TABLE IF EXISTS rate_limits;
+DROP TABLE IF EXISTS email_verifications;
 DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS users;
@@ -60,6 +61,15 @@ CREATE TABLE rate_limits (
     count INTEGER NOT NULL DEFAULT 1,
     UNIQUE (key, action)
 );
+
+CREATE TABLE email_verifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 """
 
 
@@ -96,8 +106,8 @@ async def test_pool():
 async def clean_db(test_pool):
     async with test_pool.acquire() as conn:
         await conn.execute(
-            "TRUNCATE TABLE rate_limits, password_resets, refresh_tokens, users"
-            " RESTART IDENTITY CASCADE;"
+            "TRUNCATE TABLE rate_limits, email_verifications, password_resets,"
+            " refresh_tokens, users RESTART IDENTITY CASCADE;"
         )
     yield
 

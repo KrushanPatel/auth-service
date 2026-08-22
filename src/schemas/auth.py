@@ -73,3 +73,15 @@ class ResetPasswordRequest(BaseModel):
         max_length=128,
         examples=["NewPassword@123"],
     )
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    message: str

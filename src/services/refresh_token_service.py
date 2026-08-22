@@ -15,6 +15,7 @@ from repositories.refresh_token_repository import (
     revoke_refresh_token_by_jti,
     update_refresh_token_last_used,
 )
+from services.email_verification_service import cleanup_expired_email_verification_tokens
 from services.password_reset_service import cleanup_expired_password_reset_tokens
 from services.rate_limit_service import cleanup_expired_rate_limits
 
@@ -118,6 +119,7 @@ async def cleanup_task():
             await asyncio.sleep(3600)
             await cleanup_expired_refresh_tokens()
             await cleanup_expired_password_reset_tokens()
+            await cleanup_expired_email_verification_tokens()
             await cleanup_expired_rate_limits()
             print("Expired refresh token cleaned")
 

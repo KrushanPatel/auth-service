@@ -20,7 +20,7 @@ def make_user(**overrides):
         "password_hash": hash_password("Password@123"),
         "first_name": "Krushan",
         "last_name": "Patel",
-        "is_verified": False,
+        "is_verified": True,
         "is_active": True,
     }
     user.update(overrides)
@@ -54,11 +54,14 @@ async def test_register_user_success(monkeypatch):
             }
         ),
     )
+    issue_email_verification = AsyncMock(return_value="some-token")
+    monkeypatch.setattr(auth_service, "issue_email_verification", issue_email_verification)
 
     result = await auth_service.register_user(register_request())
 
     assert result["id"] == USER_ID
     assert result["message"] == "User registered successfully"
+    issue_email_verification.assert_awaited_once_with(USER_ID, "krushan@example.com")
 
 
 async def test_register_user_duplicate_email(monkeypatch):
@@ -111,6 +114,19 @@ async def test_login_user_unknown_email(monkeypatch):
 async def test_login_user_inactive_account(monkeypatch):
     monkeypatch.setattr(
         auth_service, "get_user_by_email", AsyncMock(return_value=make_user(is_active=False))
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await auth_service.login_user(
+            LoginRequest(email="krushan@example.com", password="Password@123")
+        )
+
+    assert exc_info.value.status_code == 403
+
+
+async def test_login_user_unverified_rejected(monkeypatch):
+    monkeypatch.setattr(
+        auth_service, "get_user_by_email", AsyncMock(return_value=make_user(is_verified=False))
     )
 
     with pytest.raises(HTTPException) as exc_info:

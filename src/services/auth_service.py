@@ -11,6 +11,7 @@ from repositories.user_repository import (
     update_user,
 )
 from schemas.auth import LoginRequest, RegisterRequest
+from services.email_verification_service import issue_email_verification
 from services.refresh_token_service import revoke_refresh_token, store_refresh_token
 
 
@@ -36,6 +37,8 @@ async def register_user(request: RegisterRequest):
         last_name=request.last_name,
     )
 
+    await issue_email_verification(user["id"], request.email)
+
     return {
         **dict(user),
         "message": "User registered successfully",
@@ -56,6 +59,12 @@ async def login_user(request: LoginRequest):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled",
+        )
+
+    if not user["is_verified"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified",
         )
 
     if not verify_password(

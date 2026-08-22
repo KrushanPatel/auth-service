@@ -1,3 +1,5 @@
+from services.email_verification_service import request_email_verification
+
 DEFAULT_USER = {
     "username": "krushan",
     "email": "krushan@example.com",
@@ -22,8 +24,14 @@ async def login_user(client, email=None, password=None):
     )
 
 
+async def verify_user_email(client, email=None):
+    token = await request_email_verification(email or DEFAULT_USER["email"])
+    return await client.post("/api/v1/auth/verify-email", json={"token": token})
+
+
 async def register_and_login(client, **overrides):
     await register_user(client, **overrides)
+    await verify_user_email(client, email=overrides.get("email"))
     response = await login_user(
         client,
         email=overrides.get("email"),
