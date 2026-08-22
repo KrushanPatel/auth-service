@@ -61,12 +61,6 @@ async def login_user(request: LoginRequest):
             detail="Account is disabled",
         )
 
-    if not user["is_verified"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Email not verified",
-        )
-
     if not verify_password(
         request.password,
         user["password_hash"],
@@ -74,6 +68,12 @@ async def login_user(request: LoginRequest):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
+        )
+
+    if not user["is_verified"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified",
         )
 
     access_token = create_access_token(str(user["id"]))
