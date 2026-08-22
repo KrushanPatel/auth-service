@@ -275,12 +275,7 @@ Please describe:
 
 ## Code of Conduct
 
-By participating in this project, you agree to:
-
-1. **Be respectful**: Maintain a friendly and professional attitude
-2. **Be inclusive**: Welcome contributors from all backgrounds
-3. **Be constructive**: Provide helpful feedback
-4. **Stay focused**: Keep discussions technical
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ---
 

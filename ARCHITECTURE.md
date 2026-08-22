@@ -7,7 +7,8 @@ auth-microservice/
 ├── ABOUT.md
 ├── ARCHITECTURE.md
 ├── CLAUDE.md
-├── CONTRIBUTION.md
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
 ├── Dockerfile
 ├── LICENSE
 ├── PROGRESS_TRACKER.md

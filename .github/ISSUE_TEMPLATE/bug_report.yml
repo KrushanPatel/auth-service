@@ -1,0 +1,52 @@
+name: Bug Report
+description: Report a problem with the auth microservice
+labels: ["bug"]
+body:
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+    validations:
+      required: true
+  - type: dropdown
+    id: run-mode
+    attributes:
+      label: Running locally or via Docker?
+      options:
+        - Locally (uv run)
+        - Docker / docker compose
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Detailed steps, including request/response examples (curl, HTTP client)
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error logs
+      description: If any
+      render: shell
+    validations:
+      required: false
