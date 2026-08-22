@@ -84,6 +84,17 @@ async def test_logout_revokes_refresh_token(client):
     assert refresh_response.status_code == 400
 
 
+async def test_login_rate_limited_after_too_many_attempts(client):
+    await register_user(client)
+
+    for _ in range(5):
+        await login_user(client, password="wrong-password")
+
+    response = await login_user(client, password="wrong-password")
+
+    assert response.status_code == 429
+
+
 async def test_logout_invalidates_access_token_immediately(client):
     tokens = await register_and_login(client)
 
