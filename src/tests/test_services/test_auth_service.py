@@ -22,6 +22,7 @@ def make_user(**overrides):
         "last_name": "Patel",
         "is_verified": True,
         "is_active": True,
+        "mfa_enabled": False,
     }
     user.update(overrides)
     return user
@@ -135,6 +136,22 @@ async def test_login_user_unverified_rejected(monkeypatch):
         )
 
     assert exc_info.value.status_code == 403
+
+
+async def test_login_user_mfa_enabled_returns_mfa_token(monkeypatch):
+    monkeypatch.setattr(
+        auth_service, "get_user_by_email", AsyncMock(return_value=make_user(mfa_enabled=True))
+    )
+    store_refresh_token = AsyncMock(return_value=None)
+    monkeypatch.setattr(auth_service, "store_refresh_token", store_refresh_token)
+
+    result = await auth_service.login_user(
+        LoginRequest(email="krushan@example.com", password="Password@123")
+    )
+
+    assert result == {"mfa_required": True, "mfa_token": result["mfa_token"]}
+    assert result["mfa_token"]
+    store_refresh_token.assert_not_awaited()
 
 
 async def test_login_user_wrong_password(monkeypatch):

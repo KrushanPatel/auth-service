@@ -84,3 +84,28 @@ def test_verify_refresh_token_rejects_expired_token(monkeypatch):
 
     with pytest.raises(ValueError, match="Token has expired"):
         core_jwt.verify_refresh_token(token)
+
+
+def test_create_and_verify_mfa_token():
+    token = core_jwt.create_mfa_token(USER_ID)
+
+    payload = core_jwt.verify_mfa_token(token)
+
+    assert payload["sub"] == USER_ID
+    assert payload["type"] == "mfa"
+
+
+def test_verify_mfa_token_rejects_access_token():
+    access_token = core_jwt.create_access_token(USER_ID)
+
+    with pytest.raises(ValueError, match="Invalid MFA token"):
+        core_jwt.verify_mfa_token(access_token)
+
+
+def test_verify_mfa_token_rejects_expired_token(monkeypatch):
+    monkeypatch.setattr(core_jwt, "MFA_TOKEN_EXPIRE", timedelta(seconds=-1))
+
+    token = core_jwt.create_mfa_token(USER_ID)
+
+    with pytest.raises(ValueError, match="Token has expired"):
+        core_jwt.verify_mfa_token(token)

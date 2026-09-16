@@ -70,6 +70,7 @@ dependencies = [
     "uvloop==0.22.1",
     "watchfiles==1.2.0",
     "websockets==17.0.1",
+    "pyotp>=2.10.0",
 ]
 
 [dependency-groups]

@@ -17,6 +17,7 @@ SCHEMA_SQL = """
 DROP TABLE IF EXISTS rate_limits;
 DROP TABLE IF EXISTS email_verifications;
 DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS mfa_recovery_codes;
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS users;
 
@@ -30,7 +31,9 @@ CREATE TABLE users (
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    tokens_valid_after TIMESTAMPTZ
+    tokens_valid_after TIMESTAMPTZ,
+    mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    mfa_secret TEXT
 );
 
 CREATE TABLE refresh_tokens (
@@ -67,6 +70,14 @@ CREATE TABLE email_verifications (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash TEXT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE mfa_recovery_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
     used BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -107,7 +118,7 @@ async def clean_db(test_pool):
     async with test_pool.acquire() as conn:
         await conn.execute(
             "TRUNCATE TABLE rate_limits, email_verifications, password_resets,"
-            " refresh_tokens, users RESTART IDENTITY CASCADE;"
+            " mfa_recovery_codes, refresh_tokens, users RESTART IDENTITY CASCADE;"
         )
     yield
 

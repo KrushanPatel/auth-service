@@ -53,6 +53,21 @@ class LoginResponse(BaseModel):
     token_type: Literal["bearer"]
 
 
+class MfaRequiredResponse(BaseModel):
+    mfa_required: Literal[True]
+    mfa_token: str
+
+
+class MfaVerifyRequest(BaseModel):
+    mfa_token: str
+    code: str = Field(
+        min_length=6,
+        max_length=16,
+        examples=["123456"],
+        description="A 6-digit TOTP code or a single-use recovery code",
+    )
+
+
 class LogoutRequest(BaseModel):
     refresh_token: str
 

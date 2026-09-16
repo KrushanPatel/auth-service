@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 
-from core.jwt import create_access_token, create_refresh_token
+from core.jwt import create_access_token, create_mfa_token, create_refresh_token
 from core.security import hash_password, verify_password
 from repositories.user_repository import (
     create_user,
@@ -75,6 +75,12 @@ async def login_user(request: LoginRequest):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email not verified",
         )
+
+    if user["mfa_enabled"]:
+        return {
+            "mfa_required": True,
+            "mfa_token": create_mfa_token(str(user["id"])),
+        }
 
     access_token = create_access_token(str(user["id"]))
 

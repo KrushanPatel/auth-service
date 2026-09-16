@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 
+from core.jwt import verify_mfa_token
 from schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
     LoginResponse,
     LogoutRequest,
+    MfaRequiredResponse,
+    MfaVerifyRequest,
     RegisterRequest,
     RegisterResponse,
     ResendVerificationRequest,
@@ -16,6 +19,7 @@ from schemas.auth import (
 from schemas.refresh_token import RefreshTokenRequest, RefreshTokenResponse
 from services.auth_service import login_user, logout_user, register_user
 from services.email_verification_service import request_email_verification, verify_email
+from services.mfa_service import verify_mfa_login
 from services.password_reset_service import request_password_reset
 from services.password_reset_service import reset_password as reset_password_service
 from services.rate_limit_service import enforce_rate_limit
@@ -36,10 +40,22 @@ async def register(request: RegisterRequest, http_request: Request):
     return await register_user(request)
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse | MfaRequiredResponse)
 async def login(request: LoginRequest, http_request: Request):
     await enforce_rate_limit("login", _client_ip(http_request), account_key=request.email)
     return await login_user(request)
+
+
+@router.post("/mfa/verify", response_model=LoginResponse)
+async def mfa_verify(request: MfaVerifyRequest, http_request: Request):
+    try:
+        payload = verify_mfa_token(request.mfa_token)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+
+    await enforce_rate_limit("mfa_verify", _client_ip(http_request), account_key=payload["sub"])
+
+    return await verify_mfa_login(payload["sub"], request.code)
 
 
 @router.post(
