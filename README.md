@@ -22,6 +22,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * **[CLAUDE.md](CLAUDE.md)** – Claude Code project context.
 * **[CONTRIBUTING.md](CONTRIBUTING.md)** – Contribution guidelines.
 * **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** – Code of conduct.
+* **[SECURITY.md](SECURITY.md)** – Reporting a vulnerability.
 * **[SKILLS.md](SKILLS.md)** – Project conventions.
 
 ---

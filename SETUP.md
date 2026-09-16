@@ -14,7 +14,7 @@
 
 ```bash
 git clone https://github.com/KrushanPatel/auth-service.git
-cd auth-microservice
+cd auth-service
 ```
 
 ---
@@ -40,11 +40,15 @@ SMTP_PASSWORD=<smtp-password>
 EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
 PASSWORD_RESET_URL_BASE=https://yourapp.com/reset-password
 EMAIL_VERIFICATION_URL_BASE=https://yourapp.com/verify-email
+
+MFA_ENCRYPTION_KEY=<fernet-key>
 ```
 
 Database credentials are read directly from environment variables. When deploying to AWS ECS, they are injected at runtime from **AWS Secrets Manager** (see `task-definition.json`).
 
 `SMTP_*` configures delivery of password reset and email verification emails. If `SMTP_HOST` is unset, the link is logged server-side instead of emailed (useful for local development). Any SMTP provider works, including [Amazon SES's SMTP interface](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html) for production.
+
+`MFA_ENCRYPTION_KEY` is the Fernet key that encrypts TOTP secrets at rest — generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. It has an insecure hardcoded default for local dev only; the app refuses to start with that default when `ENV=production`.
 
 Example secret:
 
@@ -111,13 +115,17 @@ http://localhost:8000/redoc
 | POST   | `/api/v1/auth/reset-password`  | Reset password using a token     | No             |
 | POST   | `/api/v1/auth/verify-email`    | Verify email using a token       | No             |
 | POST   | `/api/v1/auth/resend-verification` | Re-send the verification email | No         |
+| POST   | `/api/v1/auth/mfa/verify`      | Complete login with a TOTP or recovery code | No (needs the `mfa_token` from `/login`) |
+| POST   | `/api/v1/mfa/enroll`           | Start TOTP enrollment (returns secret + `otpauth://` URI) | Yes |
+| POST   | `/api/v1/mfa/enroll/confirm`   | Confirm enrollment with a TOTP code (returns recovery codes) | Yes |
+| POST   | `/api/v1/mfa/disable`          | Disable MFA (requires current password) | Yes    |
 | GET    | `/api/v1/users/profile`        | Get current user profile         | Yes            |
 | PATCH  | `/api/v1/users`                | Update current user profile      | Yes            |
 | GET    | `/health`                      | Health check (with DB status)    | No             |
 
-`/register`, `/login`, `/forgot-password`, and `/resend-verification` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
+`/register`, `/login`, `/forgot-password`, `/resend-verification`, and `/mfa/verify` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
 
-New accounts must verify their email before `/login` will succeed — see [Verify Email](#verify-email) below.
+New accounts must verify their email before `/login` will succeed — see [Verify Email](#verify-email) below. If the account has MFA enabled, `/login` returns `{mfa_required: true, mfa_token}` instead of tokens; exchange that for the real access/refresh pair via `/api/v1/auth/mfa/verify`.
 
 ---
 

@@ -15,14 +15,13 @@ Thank you for your interest in Auth Microservice! We welcome contributions of al
 
 - **Python**: 3.14+
 - **uv**: for dependency management ([install instructions](https://docs.astral.sh/uv/getting-started/installation/))
-- **PostgreSQL**: for local development, or use `docker compose up --build` which provisions it for you
-- **Docker** (optional): for running the full stack via `docker-compose.yml`
+- **Docker** (for a local Postgres — see step 3; also optional for running the app itself via `docker-compose.yml`)
 
 ### 1. Fork and Clone
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/auth-microservice.git
-cd auth-microservice
+git clone https://github.com/YOUR_USERNAME/auth-service.git
+cd auth-service
 ```
 
 ### 2. Install Dependencies
@@ -35,7 +34,17 @@ Do not hand-edit `uv.lock` — use `uv add <pkg>` / `uv remove <pkg>` to change 
 
 ### 3. Configure Environment
 
-Copy `.env` and set the required variables (`JWT_SECRET_KEY`, `ALGORITHM`, `DB_USERNAME`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`). See `core/config.py` and `core/secrets.py` for what's read.
+```bash
+cp .env.example .env
+```
+
+The defaults in `.env.example` point at the same disposable Postgres the test suite uses — start it with:
+
+```bash
+docker compose -f docker-compose.test.yml up -d
+```
+
+`docker-compose.yml` (the main one, used by `docker compose up --build` below) only runs the **app** container — it doesn't bundle its own Postgres, so `DB_HOST`/`DB_PORT`/etc. in `.env` need to point at a reachable one (the test Postgres above, your own local install, or RDS). See `core/config.py` and `core/secrets.py` for the full list of variables read.
 
 ### 4. Run the Service
 
@@ -43,7 +52,7 @@ Copy `.env` and set the required variables (`JWT_SECRET_KEY`, `ALGORITHM`, `DB_U
 # Directly
 uv run uvicorn src.main:app --reload
 
-# Or via Docker (reads .env, healthcheck hits /health)
+# Or via Docker (reads .env, healthcheck hits /health — still needs a reachable Postgres per step 3)
 docker compose up --build
 ```
 
@@ -58,11 +67,11 @@ curl http://localhost:8000/health
 ## Project Structure
 
 ```
-auth-microservice/
+auth-service/
 ├── pyproject.toml        # Project metadata and tooling config (ruff, mypy)
 ├── docker-compose.yml
 ├── Dockerfile
-├── alembic/               # Migrations (SQLAlchemy/Alembic present as deps, not yet wired in)
+├── alembic/               # Migrations (uv run alembic upgrade head)
 └── src/
     ├── api/v1/            # Routers, request/response schemas
     ├── services/          # Business logic; raises HTTPException

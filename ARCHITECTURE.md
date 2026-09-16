@@ -3,7 +3,7 @@
 ## Project Structure
 
 ```text
-auth-microservice/
+auth-service/
 ├── ABOUT.md
 ├── ARCHITECTURE.md
 ├── CLAUDE.md
@@ -13,11 +13,11 @@ auth-microservice/
 ├── LICENSE
 ├── PROGRESS_TRACKER.md
 ├── README.md
+├── SECURITY.md
 ├── SETUP.md
 ├── SKILLS.md
 ├── docker-compose.yml
 ├── pyproject.toml
-├── requirements.txt
 ├── task-definition.json
 ├── task-role-trust-policy.json
 ├── uv.lock

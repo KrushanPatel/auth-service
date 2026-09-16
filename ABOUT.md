@@ -26,7 +26,8 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Refresh token reuse detection (revokes all user tokens on reuse)
 * Password reset (forgot-password/reset-password, single-use token, revokes existing sessions), delivered by email via SMTP (falls back to server-side logging if SMTP isn't configured)
 * Email verification (login is blocked until verified; verify-email/resend-verification, single-use token, delivered the same way as password reset)
-* Rate limiting on register/login/forgot-password/resend-verification, by IP and by account
+* Rate limiting on register/login/forgot-password/resend-verification/mfa-verify, by IP and by account
+* Multi-Factor Authentication (TOTP via `pyotp`, secret encrypted at rest, single-use recovery codes)
 * Background cleanup of expired refresh tokens, expired password reset tokens, expired email verification tokens, and stale rate-limit windows
 * Database-aware health check endpoint
 * Docker support
@@ -41,7 +42,6 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 ### 🚧 Planned
 
 * Role-Based Access Control (RBAC)
-* Multi-Factor Authentication (MFA)
 * OAuth2 / Social Login
 * Redis integration
 * CD pipeline (deploy on merge)
