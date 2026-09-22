@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr
@@ -11,6 +12,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
+    role: Literal["user", "admin"]
 
 
 class UserUpdate(BaseModel):

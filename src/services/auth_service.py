@@ -8,7 +8,9 @@ from repositories.user_repository import (
     create_user,
     get_user_by_email,
     get_user_by_username,
+    list_users,
     update_user,
+    update_user_role,
 )
 from schemas.auth import LoginRequest, RegisterRequest
 from services.email_verification_service import issue_email_verification
@@ -104,6 +106,20 @@ async def update_user_service(user_id: str, data):
     update_data = data.model_dump(exclude_none=True)
 
     return await update_user(user_id, **update_data)
+
+
+async def list_users_service():
+    return await list_users()
+
+
+async def update_user_role_service(user_id: str, role: str):
+
+    updated_user = await update_user_role(user_id, role)
+
+    if not updated_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return updated_user
 
 
 async def logout_user(refresh_token: str):

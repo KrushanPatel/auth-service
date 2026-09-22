@@ -33,7 +33,8 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     tokens_valid_after TIMESTAMPTZ,
     mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
-    mfa_secret TEXT
+    mfa_secret TEXT,
+    role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))
 );
 
 CREATE TABLE refresh_tokens (

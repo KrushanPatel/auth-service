@@ -30,12 +30,12 @@
 * AWS ECS (Fargate) Deployment with ECR & Secrets Manager
 * Linting & Formatting (Ruff)
 * Static Type Checking (Mypy)
+* Role-Based Access Control (RBAC)
 
 ---
 
 ## 🚧 Upcoming Features
 
-* Role-Based Access Control (RBAC)
 * OAuth2 / Social Login
 * Redis Integration
 * CD Pipeline (deploy on merge)

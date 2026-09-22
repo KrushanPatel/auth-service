@@ -121,11 +121,21 @@ http://localhost:8000/redoc
 | POST   | `/api/v1/mfa/disable`          | Disable MFA (requires current password) | Yes    |
 | GET    | `/api/v1/users/profile`        | Get current user profile         | Yes            |
 | PATCH  | `/api/v1/users`                | Update current user profile      | Yes            |
+| GET    | `/api/v1/admin/users`          | List all users                   | Yes (admin)    |
+| PATCH  | `/api/v1/admin/users/{id}/role` | Change a user's role            | Yes (admin)    |
 | GET    | `/health`                      | Health check (with DB status)    | No             |
 
 `/register`, `/login`, `/forgot-password`, `/resend-verification`, and `/mfa/verify` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
 
 New accounts must verify their email before `/login` will succeed — see [Verify Email](#verify-email) below. If the account has MFA enabled, `/login` returns `{mfa_required: true, mfa_token}` instead of tokens; exchange that for the real access/refresh pair via `/api/v1/auth/mfa/verify`.
+
+Every account starts with `role = "user"`. There's no self-service way to become `"admin"` — promote the first admin directly in the database:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'krushan@gmail.com';
+```
+
+Once you have one admin account, use it to promote others via `PATCH /api/v1/admin/users/{id}/role` (see below).
 
 ---
 
@@ -242,6 +252,26 @@ curl -X PATCH http://localhost:8000/api/v1/users \
     "last_name":"Name"
 }'
 ```
+
+### List Users (admin only)
+
+```bash
+curl http://localhost:8000/api/v1/admin/users \
+-H "Authorization: Bearer <admin-jwt>"
+```
+
+### Change a User's Role (admin only)
+
+```bash
+curl -X PATCH http://localhost:8000/api/v1/admin/users/<user-id>/role \
+-H "Authorization: Bearer <admin-jwt>" \
+-H "Content-Type: application/json" \
+-d '{
+    "role":"admin"
+}'
+```
+
+A non-admin caller gets `403`. Role changes are read fresh from the database on every request, so a promoted/demoted user's access changes on their very next request — no need to log out and back in.
 
 ---
 

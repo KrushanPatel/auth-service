@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
+from api.v1.admin import router as admin_router
 from api.v1.auth import router as auth_router
 from api.v1.health import router as health_router
 from api.v1.mfa import router as mfa_router
@@ -56,6 +57,12 @@ app.include_router(
     mfa_router,
     prefix="/api/v1/mfa",
     tags=["MFA"],
+)
+
+app.include_router(
+    admin_router,
+    prefix="/api/v1/admin",
+    tags=["Admin"],
 )
 
 if __name__ == "__main__":

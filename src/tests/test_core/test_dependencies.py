@@ -19,6 +19,7 @@ def make_user(**overrides):
         "email": "krushan@example.com",
         "is_active": True,
         "tokens_valid_after": None,
+        "role": "user",
     }
     user.update(overrides)
     return user
@@ -63,3 +64,20 @@ async def test_get_current_user_rejects_token_issued_before_invalidation(monkeyp
         await dependencies.get_current_user(credentials(token))
 
     assert exc_info.value.status_code == 401
+
+
+async def test_require_role_allows_matching_role():
+    dependency = dependencies.require_role("admin")
+
+    user = await dependency(current_user=make_user(role="admin"))
+
+    assert user["role"] == "admin"
+
+
+async def test_require_role_rejects_non_matching_role():
+    dependency = dependencies.require_role("admin")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await dependency(current_user=make_user(role="user"))
+
+    assert exc_info.value.status_code == 403

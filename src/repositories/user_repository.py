@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 
-from db.session import fetch_one
+from db.session import fetch_all, fetch_one
 
 ALLOWED_FIELDS = {
     "username",
@@ -80,6 +80,35 @@ async def create_user(
     )
 
 
+async def list_users():
+
+    query = """
+        SELECT id, username, email, first_name, last_name, role, is_active, is_verified
+        FROM users
+        ORDER BY created_at;
+    """
+
+    return await fetch_all(query)
+
+
+async def update_user_role(user_id: str, role: str):
+
+    query = """
+        UPDATE users
+        SET role = $2
+        WHERE id = $1
+        RETURNING
+            id,
+            username,
+            email,
+            first_name,
+            last_name,
+            role;
+    """
+
+    return await fetch_one(query, user_id, role)
+
+
 async def update_user(user_id: str, **fields):
 
     updates = []
@@ -112,6 +141,7 @@ async def update_user(user_id: str, **fields):
             email,
             first_name,
             last_name,
+            role,
             is_verified;
     """
 

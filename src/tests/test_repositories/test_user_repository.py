@@ -6,7 +6,9 @@ from repositories.user_repository import (
     get_user_by_email,
     get_user_by_id,
     get_user_by_username,
+    list_users,
     update_user,
+    update_user_role,
 )
 
 
@@ -29,6 +31,14 @@ async def test_create_user_returns_public_fields():
     assert user["email"] == "krushan@example.com"
     assert user["is_verified"] is False
     assert "id" in user
+
+
+async def test_create_user_defaults_to_user_role():
+    created = await _create_test_user()
+
+    found = await get_user_by_id(str(created["id"]))
+
+    assert found["role"] == "user"
 
 
 async def test_get_user_by_email_found_and_missing():
@@ -88,3 +98,27 @@ async def test_update_user_rejects_empty_update():
         await update_user(str(created["id"]))
 
     assert exc_info.value.status_code == 422
+
+
+async def test_update_user_role_promotes_user():
+    created = await _create_test_user()
+
+    updated = await update_user_role(str(created["id"]), "admin")
+
+    assert updated["role"] == "admin"
+
+
+async def test_update_user_role_missing_user_returns_none():
+    updated = await update_user_role("00000000-0000-0000-0000-000000000000", "admin")
+
+    assert updated is None
+
+
+async def test_list_users_returns_all_users():
+    await _create_test_user()
+    await _create_test_user(username="second", email="second@example.com")
+
+    users = await list_users()
+
+    assert len(users) == 2
+    assert {user["username"] for user in users} == {"krushan", "second"}

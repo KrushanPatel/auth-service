@@ -1,3 +1,4 @@
+from repositories.user_repository import get_user_by_email, update_user_role
 from services.email_verification_service import request_email_verification
 
 DEFAULT_USER = {
@@ -38,3 +39,13 @@ async def register_and_login(client, **overrides):
         password=overrides.get("password"),
     )
     return response.json()
+
+
+async def register_and_login_as_admin(client, **overrides):
+    tokens = await register_and_login(client, **overrides)
+    email = overrides.get("email") or DEFAULT_USER["email"]
+
+    user = await get_user_by_email(email)
+    await update_user_role(str(user["id"]), "admin")
+
+    return tokens

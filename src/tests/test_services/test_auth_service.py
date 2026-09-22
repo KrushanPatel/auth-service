@@ -175,6 +175,35 @@ async def test_update_user_service_excludes_none_fields(monkeypatch):
     assert result["username"] == "new-name"
 
 
+async def test_list_users_service_returns_repository_result(monkeypatch):
+    list_users = AsyncMock(return_value=[{"id": USER_ID, "username": "krushan"}])
+    monkeypatch.setattr(auth_service, "list_users", list_users)
+
+    result = await auth_service.list_users_service()
+
+    list_users.assert_awaited_once()
+    assert result == [{"id": USER_ID, "username": "krushan"}]
+
+
+async def test_update_user_role_service_success(monkeypatch):
+    update_user_role = AsyncMock(return_value={"id": str(USER_ID), "role": "admin"})
+    monkeypatch.setattr(auth_service, "update_user_role", update_user_role)
+
+    result = await auth_service.update_user_role_service(str(USER_ID), "admin")
+
+    update_user_role.assert_awaited_once_with(str(USER_ID), "admin")
+    assert result["role"] == "admin"
+
+
+async def test_update_user_role_service_missing_user(monkeypatch):
+    monkeypatch.setattr(auth_service, "update_user_role", AsyncMock(return_value=None))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await auth_service.update_user_role_service(str(USER_ID), "admin")
+
+    assert exc_info.value.status_code == 404
+
+
 async def test_logout_user_revokes_token(monkeypatch):
     revoke_refresh_token = AsyncMock(return_value=None)
     monkeypatch.setattr(auth_service, "revoke_refresh_token", revoke_refresh_token)
