@@ -15,7 +15,7 @@ Thank you for your interest in Auth Microservice! We welcome contributions of al
 
 - **Python**: 3.14+
 - **uv**: for dependency management ([install instructions](https://docs.astral.sh/uv/getting-started/installation/))
-- **Docker** (for a local Postgres — see step 3; also optional for running the app itself via `docker-compose.yml`)
+- **Docker** (for a local Postgres — see step 3; `.env.example` sets `DB_SSL=disable` for it since it has no TLS; also optional for running the app itself via `docker-compose.yml`)
 
 ### 1. Fork and Clone
 
@@ -118,7 +118,7 @@ uv run mypy src/
 
 ## Testing
 
-`src/tests/test_core` and `src/tests/test_services` are pure unit tests (repositories/DB mocked). `src/tests/test_repositories` and `src/tests/test_api` are integration/e2e tests that need real Postgres and Redis instances — they get them via `docker-compose.test.yml` and bypass `create_pool()`'s AWS-secret/`ssl="require"` requirement by wiring a local asyncpg pool directly into `db.connection` (see `src/tests/conftest.py`).
+`src/tests/test_core` and `src/tests/test_services` are pure unit tests (repositories/DB mocked). `src/tests/test_repositories` and `src/tests/test_api` are integration/e2e tests that need real Postgres and Redis instances — they get them via `docker-compose.test.yml` and bypass `create_pool()`'s AWS-secret/`DB_SSL` setup by wiring a local asyncpg pool directly into `db.connection` (see `src/tests/conftest.py`).
 
 ```bash
 # Start the disposable test database (once per session)

@@ -21,4 +21,5 @@ def get_db_secret() -> dict:
         "host": os.environ["DB_HOST"],
         "port": os.environ["DB_PORT"],
         "dbname": os.environ["DB_NAME"],
+        "ssl": os.getenv("DB_SSL", "require"),
     }

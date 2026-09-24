@@ -18,7 +18,7 @@ async def create_pool():
             user=secret["username"],
             password=secret["password"],
             database=secret["dbname"],
-            ssl="require",
+            ssl=secret["ssl"],
             min_size=5,
             max_size=20,
         )

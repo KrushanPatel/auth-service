@@ -86,7 +86,7 @@ async def test_pool():
     Session-wide asyncpg pool against the docker-compose.test.yml Postgres,
     wired in as db.connection's module-level pool so repositories/services
     under test hit a real database without going through create_pool()
-    (which requires AWS-style DB_* secrets and enforces ssl="require").
+    (which requires AWS-style DB_* secrets and defaults to ssl="require").
     """
     pool = await asyncpg.create_pool(
         host=TEST_DB_HOST,

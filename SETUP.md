@@ -33,6 +33,7 @@ DB_PASSWORD=<rds-password>
 DB_HOST=<rds-host>
 DB_PORT=5432
 DB_NAME=<database-name>
+# DB_SSL=require  # default; set to disable only for a local Postgres without TLS
 
 SMTP_HOST=<smtp-host>
 SMTP_PORT=587
