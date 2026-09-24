@@ -285,6 +285,20 @@ A non-admin caller gets `403`. Role changes are read fresh from the database on 
 
 ---
 
+## CD Pipeline
+
+Pushes to `main` that pass CI are deployed automatically by the `deploy` job in `.github/workflows/ci.yml`: build & push the image to ECR, run `alembic upgrade head` as a one-off ECS task, then roll out the new task definition revision to the ECS service.
+
+One-time setup this requires (not automated — do this yourself in AWS/GitHub before the first push to `main`):
+
+1. Create a GitHub OIDC identity provider in IAM, if one doesn't already exist for this account (`token.actions.githubusercontent.com`).
+2. Create an IAM role trusted by that provider, scoped to this repo's `main` branch (`repo:<org>/<repo>:ref:refs/heads/main` in the trust policy's condition), with a permissions policy covering: ECR push, `ecs:RegisterTaskDefinition`, `ecs:DescribeTaskDefinition`, `ecs:UpdateService`, `ecs:DescribeServices`, `ecs:RunTask`, `ecs:DescribeTasks`, `ecs:StopTask`, and `iam:PassRole` limited to the existing `ecsTaskExecutionRole` ARN.
+3. In the GitHub repo's Settings → Secrets and variables → Actions, add a repository **variable** named `AWS_DEPLOY_ROLE_ARN` with that role's ARN.
+
+The workflow fetches the live ECS task definition and network configuration (cluster `auth-microservice-cluster`, service `auth-microservice-service`, region `ap-south-1`) directly from AWS at deploy time rather than committing `task-definition.json` (which stays git-ignored), so there's no second, driftable copy of account/region info in the repo.
+
+---
+
 ## Running Tests
 
 Unit tests (`src/tests/test_core`, `src/tests/test_services`) run standalone. Repository and API tests need real Postgres and Redis instances — start the disposable test containers first:

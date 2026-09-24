@@ -41,10 +41,10 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Role-Based Access Control (RBAC)
 * OAuth2 / Social Login (Google, auto-link by verified email)
 * Redis integration (rate limiting)
+* CD pipeline (deploy on merge, via GitHub Actions OIDC + ECS)
 
 ### 🚧 Planned
 
-* CD pipeline (deploy on merge)
 * Kubernetes deployment
 
 ---
