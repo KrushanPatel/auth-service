@@ -6,6 +6,7 @@
 * Docker & Docker Compose
 * AWS Account
 * Amazon RDS PostgreSQL
+* Redis (rate limiting; e.g. Amazon ElastiCache)
 * AWS Secrets Manager
 
 ---
@@ -46,15 +47,19 @@ MFA_ENCRYPTION_KEY=<fernet-key>
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 GOOGLE_REDIRECT_URI=https://yourapp.com/api/v1/auth/oauth/google/callback
+
+REDIS_URL=redis://<redis-host>:6379/0
 ```
 
-Database credentials are read directly from environment variables. When deploying to AWS ECS, they are injected at runtime from **AWS Secrets Manager** (see `task-definition.json`).
+Database credentials are read directly from environment variables. When deploying to AWS ECS, they are injected at runtime from **AWS Secrets Manager** (see the `secrets` block of the ECS task definition).
 
 `SMTP_*` configures delivery of password reset and email verification emails. If `SMTP_HOST` is unset, the link is logged server-side instead of emailed (useful for local development). Any SMTP provider works, including [Amazon SES's SMTP interface](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html) for production.
 
 `MFA_ENCRYPTION_KEY` is the Fernet key that encrypts TOTP secrets at rest — generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. It has an insecure hardcoded default for local dev only; the app refuses to start with that default when `ENV=production`.
 
 `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI` configure "Sign in with Google" — create an OAuth client under [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) and register `GOOGLE_REDIRECT_URI` as an authorized redirect URI. Required in production (`ENV=production` refuses to start without both set).
+
+`REDIS_URL` points at the Redis instance backing rate limiting (defaults to `redis://localhost:6379/0`; `docker compose up` bundles one and overrides it to `redis://redis:6379/0`). Required in production. Include credentials/TLS in the URL if your Redis needs them (e.g. `rediss://:<password>@host:6379/0`).
 
 Example secret:
 
@@ -133,7 +138,7 @@ http://localhost:8000/redoc
 | PATCH  | `/api/v1/admin/users/{id}/role` | Change a user's role            | Yes (admin)    |
 | GET    | `/health`                      | Health check (with DB status)    | No             |
 
-`/register`, `/login`, `/forgot-password`, `/resend-verification`, and `/mfa/verify` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
+`/register`, `/login`, `/forgot-password`, `/resend-verification`, `/mfa/verify`, and `/oauth/google/login`+`/callback` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
 
 New accounts must verify their email before `/login` will succeed — see [Verify Email](#verify-email) below. If the account has MFA enabled, `/login` returns `{mfa_required: true, mfa_token}` instead of tokens; exchange that for the real access/refresh pair via `/api/v1/auth/mfa/verify`.
 
@@ -291,11 +296,11 @@ Pushes to `main` that pass CI are deployed automatically by the `deploy` job in 
 
 One-time setup this requires (not automated — do this yourself in AWS/GitHub before the first push to `main`):
 
-1. Create a GitHub OIDC identity provider in IAM, if one doesn't already exist for this account (`token.actions.githubusercontent.com`).
-2. Create an IAM role trusted by that provider, scoped to this repo's `main` branch (`repo:<org>/<repo>:ref:refs/heads/main` in the trust policy's condition), with a permissions policy covering: ECR push, `ecs:RegisterTaskDefinition`, `ecs:DescribeTaskDefinition`, `ecs:UpdateService`, `ecs:DescribeServices`, `ecs:RunTask`, `ecs:DescribeTasks`, `ecs:StopTask`, and `iam:PassRole` limited to the existing `ecsTaskExecutionRole` ARN.
+1. Create a GitHub OIDC identity provider in IAM, if one doesn't already exist for this account (provider URL `https://token.actions.githubusercontent.com` — **no trailing slash**, audience `sts.amazonaws.com`).
+2. Create an IAM role trusted by that provider, scoped to this repo's `main` branch (`repo:<org>/<repo>:ref:refs/heads/main` in the trust policy's `sub` condition; if the repo uses an immutable/customized OIDC subject claim, check `gh api repos/<org>/<repo>/actions/oidc/customization/sub` and use the exact subject it produces), with a permissions policy covering: ECR push, `ecs:RegisterTaskDefinition`, `ecs:DescribeTaskDefinition`, `ecs:UpdateService`, `ecs:DescribeServices`, `ecs:RunTask`, `ecs:DescribeTasks`, `ecs:StopTask`, and `iam:PassRole` limited to the existing `ecsTaskExecutionRole` ARN.
 3. In the GitHub repo's Settings → Secrets and variables → Actions, add a repository **variable** named `AWS_DEPLOY_ROLE_ARN` with that role's ARN.
 
-The workflow fetches the live ECS task definition and network configuration (cluster `auth-microservice-cluster`, service `auth-microservice-service`, region `ap-south-1`) directly from AWS at deploy time rather than committing `task-definition.json` (which stays git-ignored), so there's no second, driftable copy of account/region info in the repo.
+The workflow fetches the live ECS task definition and network configuration (cluster `auth-microservice-cluster`, service `auth-microservice-service`, region `ap-south-1`) directly from AWS at deploy time rather than committing `task-definition.json` (which stays git-ignored), so there's no second, driftable copy of account/region info in the repo. Because the deploy copies the latest live revision, any environment variables or secrets added to the task definition manually (e.g. `REDIS_URL`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI`) carry over to later deploys. The app refuses to start in production without those, so add them to the task definition before scaling the service up.
 
 ---
 

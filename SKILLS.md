@@ -46,6 +46,7 @@ AsyncPG Connection Pool (src/db/connection.py)
 | ------------------ | ---------------- | ------------------------------------------------- |
 | Web framework      | FastAPI          | Pydantic v2 schemas for request/response          |
 | DB driver          | asyncpg          | Async PostgreSQL, connection pool (5–20)          |
+| Rate limiting     | redis            | Fixed-window counters via `redis.asyncio`          |
 | SQL                | raw SQL          | No ORM. Use `$1, $2, ...` parameters              |
 | Password hashing   | pwdlib           | Argon2id (`PasswordHash.recommended()`)           |
 | JWT                | PyJWT            | HS256                                             |
@@ -119,6 +120,7 @@ uv run uvicorn src.main:app --reload
 
 * **Local:** `docker compose up --build` (uses `.env`, healthcheck on `/health`).
 * **Production:** AWS ECS Fargate via `task-definition.json`; image pushed to ECR.
+  * Deployed automatically on merge to `main` by the CI `deploy` job (see `SETUP.md`).
   * Secrets (`JWT_SECRET_KEY`, `DB_*`) injected from AWS Secrets Manager at runtime.
 * Container runs as non-root user (`appuser`), read-only filesystem, resource limits.
 

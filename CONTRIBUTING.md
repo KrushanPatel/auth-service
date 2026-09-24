@@ -44,7 +44,7 @@ The defaults in `.env.example` point at the same disposable Postgres the test su
 docker compose -f docker-compose.test.yml up -d
 ```
 
-`docker-compose.yml` (the main one, used by `docker compose up --build` below) only runs the **app** container — it doesn't bundle its own Postgres, so `DB_HOST`/`DB_PORT`/etc. in `.env` need to point at a reachable one (the test Postgres above, your own local install, or RDS). See `core/config.py` and `core/secrets.py` for the full list of variables read.
+`docker-compose.yml` (the main one, used by `docker compose up --build` below) runs the **app** and a Redis container (for rate limiting) but doesn't bundle Postgres, so `DB_HOST`/`DB_PORT`/etc. in `.env` need to point at a reachable one (the test Postgres above, your own local install, or RDS). See `core/config.py` and `core/secrets.py` for the full list of variables read.
 
 ### 4. Run the Service
 
@@ -118,7 +118,7 @@ uv run mypy src/
 
 ## Testing
 
-`src/tests/test_core` and `src/tests/test_services` are pure unit tests (repositories/DB mocked). `src/tests/test_repositories` and `src/tests/test_api` are integration/e2e tests that need a real Postgres — they get one via `docker-compose.test.yml` and bypass `create_pool()`'s AWS-secret/`ssl="require"` requirement by wiring a local asyncpg pool directly into `db.connection` (see `src/tests/conftest.py`).
+`src/tests/test_core` and `src/tests/test_services` are pure unit tests (repositories/DB mocked). `src/tests/test_repositories` and `src/tests/test_api` are integration/e2e tests that need real Postgres and Redis instances — they get them via `docker-compose.test.yml` and bypass `create_pool()`'s AWS-secret/`ssl="require"` requirement by wiring a local asyncpg pool directly into `db.connection` (see `src/tests/conftest.py`).
 
 ```bash
 # Start the disposable test database (once per session)

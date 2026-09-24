@@ -17,6 +17,7 @@ auth-service/
 ├── SETUP.md
 ├── SKILLS.md
 ├── docker-compose.yml
+├── docker-compose.test.yml
 ├── pyproject.toml
 ├── task-definition.json
 ├── task-role-trust-policy.json
@@ -31,11 +32,13 @@ auth-service/
     │   ├── config.py
     │   ├── dependencies.py
     │   ├── email.py
+    │   ├── google_oauth.py
     │   ├── jwt.py
     │   ├── secrets.py
     │   └── security.py
     ├── db/
     │   ├── connection.py
+    │   ├── redis_connection.py
     │   └── session.py
     ├── repositories/
     │   ├── email_verification_repository.py
@@ -51,6 +54,7 @@ auth-service/
     ├── services/
     │   ├── auth_service.py
     │   ├── email_verification_service.py
+    │   ├── oauth_service.py
     │   ├── password_reset_service.py
     │   ├── rate_limit_service.py
     │   └── refresh_token_service.py
@@ -234,7 +238,7 @@ Revoke Refresh Token + Invalidate Access Tokens
 * **Logout invalidates access tokens immediately** — a per-user `tokens_valid_after` timestamp is checked on every request, so a stolen/copied access token stops working the moment its owner logs out, not just when it naturally expires (up to 15 minutes later).
 * **Email verification is required to log in** — new accounts start with `is_verified = false`; `/login` returns 403 until the account is verified via a single-use, expiring token emailed at registration (or re-issued via `/resend-verification`).
 * JWT authentication uses **HS256**.
-* **Rate limiting** on `/register`, `/login`, `/forgot-password`, and `/resend-verification` — both by client IP and by target account — to blunt brute-force login attempts and password-reset/verification email spam.
+* **Rate limiting** on `/register`, `/login`, `/forgot-password`, `/resend-verification`, and Google OAuth — both by client IP and (where applicable) by target account, using Redis fixed-window counters with a TTL — to blunt brute-force login attempts and password-reset/verification email spam.
 * Database credentials are injected at runtime from **AWS Secrets Manager** (ECS) or `.env`.
 * PostgreSQL connections are managed using an **AsyncPG connection pool**.
 * Protected endpoints require a valid Bearer JWT.

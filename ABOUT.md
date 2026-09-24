@@ -28,7 +28,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Email verification (login is blocked until verified; verify-email/resend-verification, single-use token, delivered the same way as password reset)
 * Rate limiting on register/login/forgot-password/resend-verification/mfa-verify/oauth-google, by IP and by account, backed by Redis
 * Multi-Factor Authentication (TOTP via `pyotp`, secret encrypted at rest, single-use recovery codes)
-* Background cleanup of expired refresh tokens, expired password reset tokens, expired email verification tokens, and stale rate-limit windows
+* Background cleanup of expired refresh tokens, expired password reset tokens, and expired email verification tokens
 * Database-aware health check endpoint
 * Docker support
 * AWS ECS (Fargate) deployment with ECR & Secrets Manager

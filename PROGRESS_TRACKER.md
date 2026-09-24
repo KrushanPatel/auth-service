@@ -20,9 +20,9 @@
 * Forgot Password / Password Reset (single-use token, revokes sessions)
 * Email Verification (login blocked until verified; verify-email/resend-verification)
 * SMTP Email Delivery for Password Reset and Email Verification (falls back to server-side logging)
-* Rate Limiting (register/login/forgot-password/resend-verification/mfa-verify, by IP and by account)
+* Rate Limiting (register/login/forgot-password/resend-verification/mfa-verify/oauth-google, by IP and by account, backed by Redis)
 * Multi-Factor Authentication (TOTP via pyotp, encrypted secret at rest, single-use recovery codes)
-* Background Cleanup of Expired Refresh Tokens, Password Reset Tokens, Email Verification Tokens, and Rate-Limit Windows
+* Background Cleanup of Expired Refresh Tokens, Password Reset Tokens, and Email Verification Tokens
 * Health Check Endpoint
 * Swagger API Documentation
 * Alembic Migrations
