@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
@@ -10,7 +12,8 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 * Run dev server: `uv run uvicorn src.main:app --reload` (or `uv run src/main.py`).
 * Run via Docker: `docker compose up --build` (reads `.env`, healthcheck hits `/health`).
 * Run all tests: `uv run pytest`.
-* Run a single test: `uv run pytest src/tests/path/to/test_file.py::test_name` (tests use `pytest-asyncio`, `asyncio_mode = "auto"`). Repository/API tests need Postgres and Redis: `docker compose -f docker-compose.test.yml up -d` first.
+* Run a single test: `uv run pytest src/tests/path/to/test_file.py::test_name` (tests use `pytest-asyncio`, `asyncio_mode = "auto"`). Repository/API tests need Postgres and Redis: `docker compose -f docker-compose.test.yml up -d` first (Postgres on 5433, Redis on 6380; overridable via `TEST_DB_*`/`TEST_REDIS_URL`). `test_core/` and `test_services/` are pure unit tests with repositories mocked; `test_repositories/` and `test_api/` hit the real DB/Redis and auto-truncate/flush between tests.
+* **Test schema is not built from Alembic:** `src/tests/conftest.py` creates tables from a hand-written `SCHEMA_SQL` and injects its own pool into `db.connection._pool` (bypassing `create_pool()`'s env-secret/`ssl="require"` path). Any migration that adds/changes a table or column must also update `SCHEMA_SQL` and the `clean_db` `TRUNCATE` list, or tests will run against a stale schema.
 * Lint: `uv run ruff check .`. Format check: `uv run ruff format --check .` (apply with `uv run ruff format .`).
 * Type-check: `uv run mypy src`.
 * Migrations: `uv run alembic upgrade head` / `uv run alembic downgrade base`; new revision: `uv run alembic revision -m "..."`.
@@ -30,6 +33,7 @@ api/v1/*.py (routers, request/response schemas)
 
 * **No ORM for queries.** SQLAlchemy is a dependency only for Alembic's async engine (`alembic/env.py`) — all application queries are raw asyncpg with `$1, $2, ...` params (see `repositories/`). Schema changes go through Alembic migrations in `alembic/versions/`.
 * **Import style:** modules are imported relative to `src/` without a `src.` prefix (e.g. `from core.jwt import ...`, not `from src.core.jwt import ...`) — this only resolves when `src/` is the working directory / on the path (as uvicorn and pytest are invoked here).
+* **Conventions** (from `SKILLS.md`/`CONTRIBUTING.md`): repositories raise `ValueError`, services translate to `HTTPException`; Pydantic v2 response models use `ConfigDict(from_attributes=True)` and query column names must match schema field names; code is comment-light; commits follow Conventional Commits with a scope (`feat(auth): ...`, `fix(docker): ...`). Note `SKILLS.md` is partly stale (it says no linter/type-checker and Alembic "not yet configured" — both untrue now; trust `pyproject.toml`/CI).
 * **Auth tokens** (`core/jwt.py`, PyJWT, HS256): access tokens expire in 15 min; refresh tokens in 7 days and carry a `jti`, hashed with Argon2id (`core/security.py`, same hasher used for user passwords) before being stored via `repositories/refresh_token_repository.py`. Password reset tokens are a separate, non-JWT scheme (see below).
 * **Access token revocation on logout** (`users.tokens_valid_after` column, checked in `core/dependencies.py:get_current_user`): access tokens are otherwise stateless JWTs with no DB-backed revocation list, so `/api/v1/auth/logout` also stamps the user's `tokens_valid_after` to the current time; any access token whose `iat` predates it is rejected with 401, even if not yet expired. This is a per-user cutoff, not per-session — logging out invalidates *every* access token issued to that user up to that point (consistent with the existing "revoke all refresh tokens" behavior used by reuse detection and password reset), not just the one tied to the refresh token passed to `/logout`. Other active sessions keep working once they hit `/refresh` for a new access token.
 * **Refresh rotation & reuse detection** (`services/refresh_token_service.py`): every `/api/v1/auth/refresh` call validates the token's `jti` against the DB, issues a new access+refresh pair, and revokes the old one. Attempting to reuse an already-revoked token revokes *all* refresh tokens for that user.
