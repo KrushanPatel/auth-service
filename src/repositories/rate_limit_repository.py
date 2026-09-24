@@ -1,39 +1,22 @@
 from datetime import timedelta
 
-from db.session import execute, fetch_one
+from db.redis_connection import get_redis_client
 
 
 async def increment_rate_limit(key: str, action: str, window: timedelta) -> int:
     """
-    Atomically increment the fixed-window counter for (key, action), resetting
-    it first if the current window has expired. Returns the count after the
-    increment.
+    Atomically increment the fixed-window counter for (key, action) in Redis.
+    The TTL is (re)applied with NX after every increment rather than only
+    when the count is 1: if the process died between an INCR and a
+    conditional EXPIRE, a count-1-gated TTL would never get set, leaving the
+    key stuck at a permanent limit. EXPIRE ... NX is idempotent and immune to
+    that, at the cost of one extra call per request.
     """
 
-    query = """
-        INSERT INTO rate_limits (key, action, window_start, count)
-        VALUES ($1, $2, now(), 1)
-        ON CONFLICT (key, action) DO UPDATE
-        SET
-            count = CASE
-                WHEN rate_limits.window_start <= now() - $3::interval THEN 1
-                ELSE rate_limits.count + 1
-            END,
-            window_start = CASE
-                WHEN rate_limits.window_start <= now() - $3::interval THEN now()
-                ELSE rate_limits.window_start
-            END
-        RETURNING count;
-    """
+    client = get_redis_client()
+    redis_key = f"ratelimit:{action}:{key}"
 
-    row = await fetch_one(query, key, action, window)
-    return row["count"]
+    count = await client.incr(redis_key)
+    await client.expire(redis_key, int(window.total_seconds()), nx=True)
 
-
-async def delete_stale_rate_limits(max_age: timedelta) -> None:
-    query = """
-        DELETE FROM rate_limits
-        WHERE window_start <= now() - $1::interval;
-    """
-
-    await execute(query, max_age)
+    return count

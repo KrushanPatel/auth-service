@@ -2,9 +2,11 @@ import os
 
 import asyncpg
 import pytest
+import redis.asyncio as redis
 from httpx import ASGITransport, AsyncClient
 
 import db.connection as db_connection
+import db.redis_connection as db_redis_connection
 from main import app
 
 TEST_DB_HOST = os.getenv("TEST_DB_HOST", "localhost")
@@ -13,8 +15,9 @@ TEST_DB_USER = os.getenv("TEST_DB_USER", "test")
 TEST_DB_PASSWORD = os.getenv("TEST_DB_PASSWORD", "test")
 TEST_DB_NAME = os.getenv("TEST_DB_NAME", "auth_test")
 
+TEST_REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6380/0")
+
 SCHEMA_SQL = """
-DROP TABLE IF EXISTS rate_limits;
 DROP TABLE IF EXISTS email_verifications;
 DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS mfa_recovery_codes;
@@ -56,15 +59,6 @@ CREATE TABLE password_resets (
     expires_at TIMESTAMPTZ NOT NULL,
     used BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE rate_limits (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    key TEXT NOT NULL,
-    action TEXT NOT NULL,
-    window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
-    count INTEGER NOT NULL DEFAULT 1,
-    UNIQUE (key, action)
 );
 
 CREATE TABLE email_verifications (
@@ -119,14 +113,38 @@ async def test_pool():
 async def clean_db(test_pool):
     async with test_pool.acquire() as conn:
         await conn.execute(
-            "TRUNCATE TABLE rate_limits, email_verifications, password_resets,"
+            "TRUNCATE TABLE email_verifications, password_resets,"
             " mfa_recovery_codes, refresh_tokens, users RESTART IDENTITY CASCADE;"
         )
     yield
 
 
+@pytest.fixture(scope="session")
+async def test_redis():
+    """
+    Session-wide Redis client against docker-compose.test.yml's disposable
+    redis-test service, wired in as db.redis_connection's module-level client
+    so the rate limit repository under test hits real Redis — mirrors
+    test_pool's approach for asyncpg above.
+    """
+    client = redis.from_url(TEST_REDIS_URL)
+
+    db_redis_connection._redis_client = client
+
+    yield client
+
+    db_redis_connection._redis_client = None
+    await client.aclose()
+
+
 @pytest.fixture
-async def client(test_pool):
+async def clean_redis(test_redis):
+    await test_redis.flushdb()
+    yield
+
+
+@pytest.fixture
+async def client(test_pool, test_redis):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

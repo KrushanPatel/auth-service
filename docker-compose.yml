@@ -11,6 +11,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
     healthcheck:
@@ -42,6 +47,18 @@ services:
     tmpfs:
       - /tmp
     stop_grace_period: 10s
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: auth-microservice-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - backend
 

@@ -26,7 +26,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Refresh token reuse detection (revokes all user tokens on reuse)
 * Password reset (forgot-password/reset-password, single-use token, revokes existing sessions), delivered by email via SMTP (falls back to server-side logging if SMTP isn't configured)
 * Email verification (login is blocked until verified; verify-email/resend-verification, single-use token, delivered the same way as password reset)
-* Rate limiting on register/login/forgot-password/resend-verification/mfa-verify, by IP and by account
+* Rate limiting on register/login/forgot-password/resend-verification/mfa-verify/oauth-google, by IP and by account, backed by Redis
 * Multi-Factor Authentication (TOTP via `pyotp`, secret encrypted at rest, single-use recovery codes)
 * Background cleanup of expired refresh tokens, expired password reset tokens, expired email verification tokens, and stale rate-limit windows
 * Database-aware health check endpoint
@@ -40,10 +40,10 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Automated test suite (unit, integration, e2e)
 * Role-Based Access Control (RBAC)
 * OAuth2 / Social Login (Google, auto-link by verified email)
+* Redis integration (rate limiting)
 
 ### 🚧 Planned
 
-* Redis integration
 * CD pipeline (deploy on merge)
 * Kubernetes deployment
 
@@ -57,6 +57,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 | Language           | Python 3.14+            |
 | Database           | PostgreSQL (Amazon RDS) |
 | Database Driver    | AsyncPG                 |
+| Rate Limit Store   | Redis                   |
 | Authentication     | JWT (PyJWT)             |
 | Password Hashing   | Pwdlib (Argon2id)       |
 | Validation         | Pydantic v2             |

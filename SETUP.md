@@ -287,7 +287,7 @@ A non-admin caller gets `403`. Role changes are read fresh from the database on 
 
 ## Running Tests
 
-Unit tests (`src/tests/test_core`, `src/tests/test_services`) run standalone. Repository and API tests need a real Postgres instance — start the disposable test database first:
+Unit tests (`src/tests/test_core`, `src/tests/test_services`) run standalone. Repository and API tests need real Postgres and Redis instances — start the disposable test containers first:
 
 ```bash
 docker compose -f docker-compose.test.yml up -d

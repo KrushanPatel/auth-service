@@ -43,3 +43,5 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI = os.getenv(
     "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/v1/auth/oauth/google/callback"
 )
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")

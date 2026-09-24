@@ -17,7 +17,6 @@ from repositories.refresh_token_repository import (
 )
 from services.email_verification_service import cleanup_expired_email_verification_tokens
 from services.password_reset_service import cleanup_expired_password_reset_tokens
-from services.rate_limit_service import cleanup_expired_rate_limits
 
 
 async def store_refresh_token(
@@ -120,7 +119,6 @@ async def cleanup_task():
             await cleanup_expired_refresh_tokens()
             await cleanup_expired_password_reset_tokens()
             await cleanup_expired_email_verification_tokens()
-            await cleanup_expired_rate_limits()
             print("Expired refresh token cleaned")
 
         except asyncio.CancelledError:

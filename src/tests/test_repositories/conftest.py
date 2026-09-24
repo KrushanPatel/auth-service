@@ -2,5 +2,5 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _autouse_clean_db(clean_db):
+def _autouse_clean_db(clean_db, clean_redis):
     pass

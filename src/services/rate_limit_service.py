@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from fastapi import HTTPException, status
 
-from repositories.rate_limit_repository import delete_stale_rate_limits, increment_rate_limit
+from repositories.rate_limit_repository import increment_rate_limit
 
 # (limit, window) per action, keyed by client IP.
 IP_LIMITS: dict[str, tuple[int, timedelta]] = {
@@ -24,11 +24,6 @@ ACCOUNT_LIMITS: dict[str, tuple[int, timedelta]] = {
     "mfa_verify": (5, timedelta(minutes=15)),
 }
 
-MAX_RATE_LIMIT_WINDOW = max(
-    (window for _, window in [*IP_LIMITS.values(), *ACCOUNT_LIMITS.values()]),
-    default=timedelta(),
-)
-
 
 async def _check(key: str, action: str, limit: int, window: timedelta) -> None:
     count = await increment_rate_limit(key, action, window)
@@ -47,7 +42,3 @@ async def enforce_rate_limit(action: str, ip: str, account_key: str | None = Non
     if account_key is not None:
         limit, window = ACCOUNT_LIMITS[action]
         await _check(account_key, f"account:{action}", limit, window)
-
-
-async def cleanup_expired_rate_limits() -> None:
-    await delete_stale_rate_limits(MAX_RATE_LIMIT_WINDOW)

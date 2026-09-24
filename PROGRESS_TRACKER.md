@@ -32,11 +32,11 @@
 * Static Type Checking (Mypy)
 * Role-Based Access Control (RBAC)
 * OAuth2 / Social Login (Google, auto-link by verified email)
+* Redis Integration (rate limiting)
 
 ---
 
 ## 🚧 Upcoming Features
 
-* Redis Integration
 * CD Pipeline (deploy on merge)
 * Kubernetes Deployment

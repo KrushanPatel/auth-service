@@ -25,6 +25,16 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v7
 
@@ -66,4 +76,5 @@ jobs:
           TEST_DB_USER: test
           TEST_DB_PASSWORD: test
           TEST_DB_NAME: auth_test
+          TEST_REDIS_URL: redis://localhost:6380/0
         run: uv run pytest

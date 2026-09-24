@@ -13,6 +13,7 @@ from core.email import validate_email_config
 from core.google_oauth import validate_google_oauth_config
 from core.mfa_crypto import validate_mfa_config
 from db.connection import close_pool, create_pool
+from db.redis_connection import close_redis_client, create_redis_client, validate_redis_config
 from services.refresh_token_service import cleanup_task
 
 
@@ -21,15 +22,18 @@ async def lifespan(app: FastAPI):
 
     validate_email_config()
     validate_mfa_config()
-    await create_pool()
     validate_google_oauth_config()
     validate_redis_config()
+    await create_pool()
     print("Database connected")
+    await create_redis_client()
+    print("Redis connected")
     task = asyncio.create_task(cleanup_task())
     yield
 
     task.cancel()
     await close_pool()
+    await close_redis_client()
     print("Database disconnected")
 
 
