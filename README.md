@@ -23,7 +23,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * **[CONTRIBUTING.md](CONTRIBUTING.md)** – Contribution guidelines.
 * **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** – Code of conduct.
 * **[SECURITY.md](SECURITY.md)** – Reporting a vulnerability.
-* **[SKILLS.md](SKILLS.md)** – Project conventions.
+* **[SKILLS.md](SKILLS.md)** – Project conventions (partly outdated; `pyproject.toml` and CI are authoritative for tooling).
 
 ---
 
