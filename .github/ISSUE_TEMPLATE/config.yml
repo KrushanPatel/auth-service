@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ask a question
+    url: https://github.com/KrushanPatel/auth-service/discussions/categories/q-a
+    about: Setup help, usage questions, and "how does X work?" — please ask in Discussions instead of opening an issue.
+  - name: Share an idea
+    url: https://github.com/KrushanPatel/auth-service/discussions/categories/ideas
+    about: Early-stage feature ideas you want to talk through before opening a feature request.
+  - name: Report a security vulnerability
+    url: https://github.com/KrushanPatel/auth-service/blob/main/SECURITY.md
+    about: Please do not open a public issue for security problems — see SECURITY.md.
