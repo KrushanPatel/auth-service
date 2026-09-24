@@ -31,12 +31,12 @@
 * Linting & Formatting (Ruff)
 * Static Type Checking (Mypy)
 * Role-Based Access Control (RBAC)
+* OAuth2 / Social Login (Google, auto-link by verified email)
 
 ---
 
 ## 🚧 Upcoming Features
 
-* OAuth2 / Social Login
 * Redis Integration
 * CD Pipeline (deploy on merge)
 * Kubernetes Deployment

@@ -10,6 +10,7 @@ ALLOWED_FIELDS = {
     "password_hash",
     "is_verified",
     "tokens_valid_after",
+    "google_id",
 }
 
 
@@ -44,6 +45,53 @@ async def get_user_by_id(user_id: str):
     """
 
     return await fetch_one(query, user_id)
+
+
+async def get_user_by_google_id(google_id: str):
+
+    query = """
+        SELECT *
+        FROM users
+        WHERE google_id = $1;
+    """
+
+    return await fetch_one(query, google_id)
+
+
+async def create_oauth_user(
+    username: str,
+    email: str,
+    first_name: str,
+    last_name: str,
+    google_id: str,
+):
+
+    query = """
+        INSERT INTO users (
+            username,
+            email,
+            first_name,
+            last_name,
+            google_id,
+            is_verified
+        )
+        VALUES ($1,$2,$3,$4,$5, TRUE)
+        RETURNING *;
+    """
+
+    return await fetch_one(
+        query,
+        username,
+        email,
+        first_name,
+        last_name,
+        google_id,
+    )
+
+
+async def link_google_id(user_id: str, google_id: str):
+    await update_user(user_id, google_id=google_id)
+    return await get_user_by_id(user_id)
 
 
 async def create_user(

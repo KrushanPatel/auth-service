@@ -38,11 +38,11 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * Alembic database migrations
 * CI pipeline (GitHub Actions: lint, type-check, migration check, tests)
 * Automated test suite (unit, integration, e2e)
+* Role-Based Access Control (RBAC)
+* OAuth2 / Social Login (Google, auto-link by verified email)
 
 ### 🚧 Planned
 
-* Role-Based Access Control (RBAC)
-* OAuth2 / Social Login
 * Redis integration
 * CD pipeline (deploy on merge)
 * Kubernetes deployment

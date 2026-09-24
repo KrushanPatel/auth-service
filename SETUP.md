@@ -42,6 +42,10 @@ PASSWORD_RESET_URL_BASE=https://yourapp.com/reset-password
 EMAIL_VERIFICATION_URL_BASE=https://yourapp.com/verify-email
 
 MFA_ENCRYPTION_KEY=<fernet-key>
+
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
+GOOGLE_REDIRECT_URI=https://yourapp.com/api/v1/auth/oauth/google/callback
 ```
 
 Database credentials are read directly from environment variables. When deploying to AWS ECS, they are injected at runtime from **AWS Secrets Manager** (see `task-definition.json`).
@@ -49,6 +53,8 @@ Database credentials are read directly from environment variables. When deployin
 `SMTP_*` configures delivery of password reset and email verification emails. If `SMTP_HOST` is unset, the link is logged server-side instead of emailed (useful for local development). Any SMTP provider works, including [Amazon SES's SMTP interface](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html) for production.
 
 `MFA_ENCRYPTION_KEY` is the Fernet key that encrypts TOTP secrets at rest — generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. It has an insecure hardcoded default for local dev only; the app refuses to start with that default when `ENV=production`.
+
+`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI` configure "Sign in with Google" — create an OAuth client under [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) and register `GOOGLE_REDIRECT_URI` as an authorized redirect URI. Required in production (`ENV=production` refuses to start without both set).
 
 Example secret:
 
@@ -116,6 +122,8 @@ http://localhost:8000/redoc
 | POST   | `/api/v1/auth/verify-email`    | Verify email using a token       | No             |
 | POST   | `/api/v1/auth/resend-verification` | Re-send the verification email | No         |
 | POST   | `/api/v1/auth/mfa/verify`      | Complete login with a TOTP or recovery code | No (needs the `mfa_token` from `/login`) |
+| GET    | `/api/v1/auth/oauth/google/login` | Start "Sign in with Google" (returns an `authorize_url`) | No |
+| GET    | `/api/v1/auth/oauth/google/callback` | Google OAuth redirect target; completes login/signup | No |
 | POST   | `/api/v1/mfa/enroll`           | Start TOTP enrollment (returns secret + `otpauth://` URI) | Yes |
 | POST   | `/api/v1/mfa/enroll/confirm`   | Confirm enrollment with a TOTP code (returns recovery codes) | Yes |
 | POST   | `/api/v1/mfa/disable`          | Disable MFA (requires current password) | Yes    |
@@ -128,6 +136,8 @@ http://localhost:8000/redoc
 `/register`, `/login`, `/forgot-password`, `/resend-verification`, and `/mfa/verify` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
 
 New accounts must verify their email before `/login` will succeed — see [Verify Email](#verify-email) below. If the account has MFA enabled, `/login` returns `{mfa_required: true, mfa_token}` instead of tokens; exchange that for the real access/refresh pair via `/api/v1/auth/mfa/verify`.
+
+`GET /oauth/google/login` returns `{authorize_url}` for your frontend to redirect the browser to; Google then redirects back to `/oauth/google/callback` with `code`/`state`, which this API expects to receive directly (proxy or forward the redirect as-is, don't have the frontend call it as a JSON API). Signing in with Google auto-links to an existing account by verified email, or creates a new one; a linked/created account skips this app's own email verification (Google already verified it) but still goes through the MFA check if enabled.
 
 Every account starts with `role = "user"`. There's no self-service way to become `"admin"` — promote the first admin directly in the database:
 

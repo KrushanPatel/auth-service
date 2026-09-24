@@ -53,6 +53,10 @@ class LoginResponse(BaseModel):
     token_type: Literal["bearer"]
 
 
+class GoogleAuthorizeResponse(BaseModel):
+    authorize_url: str
+
+
 class MfaRequiredResponse(BaseModel):
     mfa_required: Literal[True]
     mfa_token: str

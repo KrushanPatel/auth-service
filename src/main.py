@@ -10,6 +10,7 @@ from api.v1.health import router as health_router
 from api.v1.mfa import router as mfa_router
 from api.v1.users import router as users_router
 from core.email import validate_email_config
+from core.google_oauth import validate_google_oauth_config
 from core.mfa_crypto import validate_mfa_config
 from db.connection import close_pool, create_pool
 from services.refresh_token_service import cleanup_task
@@ -21,6 +22,8 @@ async def lifespan(app: FastAPI):
     validate_email_config()
     validate_mfa_config()
     await create_pool()
+    validate_google_oauth_config()
+    validate_redis_config()
     print("Database connected")
     task = asyncio.create_task(cleanup_task())
     yield

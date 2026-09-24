@@ -11,6 +11,7 @@ IP_LIMITS: dict[str, tuple[int, timedelta]] = {
     "forgot_password": (10, timedelta(minutes=1)),
     "resend_verification": (10, timedelta(minutes=1)),
     "mfa_verify": (20, timedelta(minutes=1)),
+    "oauth_google": (10, timedelta(minutes=1)),
 }
 
 # (limit, window) per action, keyed by the account identifier (email, or for

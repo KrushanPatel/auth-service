@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, Request, Response, status
 
+from core.config import ENV
 from core.jwt import verify_mfa_token
 from schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    GoogleAuthorizeResponse,
     LoginRequest,
     LoginResponse,
     LogoutRequest,
@@ -20,6 +22,7 @@ from schemas.refresh_token import RefreshTokenRequest, RefreshTokenResponse
 from services.auth_service import login_user, logout_user, register_user
 from services.email_verification_service import request_email_verification, verify_email
 from services.mfa_service import verify_mfa_login
+from services.oauth_service import get_google_authorize_url, handle_google_callback
 from services.password_reset_service import request_password_reset
 from services.password_reset_service import reset_password as reset_password_service
 from services.rate_limit_service import enforce_rate_limit
@@ -28,6 +31,8 @@ from services.refresh_token_service import (
 )
 
 router = APIRouter()
+
+OAUTH_STATE_COOKIE = "oauth_state_nonce"
 
 
 def _client_ip(request: Request) -> str:
@@ -56,6 +61,36 @@ async def mfa_verify(request: MfaVerifyRequest, http_request: Request):
     await enforce_rate_limit("mfa_verify", _client_ip(http_request), account_key=payload["sub"])
 
     return await verify_mfa_login(payload["sub"], request.code)
+
+
+@router.get("/oauth/google/login", response_model=GoogleAuthorizeResponse)
+async def google_login(http_request: Request, response: Response):
+    await enforce_rate_limit("oauth_google", _client_ip(http_request))
+
+    authorize_url, nonce = get_google_authorize_url()
+
+    response.set_cookie(
+        OAUTH_STATE_COOKIE,
+        nonce,
+        max_age=300,
+        httponly=True,
+        samesite="lax",
+        secure=ENV == "production",
+    )
+
+    return {"authorize_url": authorize_url}
+
+
+@router.get("/oauth/google/callback", response_model=LoginResponse | MfaRequiredResponse)
+async def google_callback(code: str, state: str, http_request: Request, response: Response):
+    await enforce_rate_limit("oauth_google", _client_ip(http_request))
+
+    cookie_nonce = http_request.cookies.get(OAUTH_STATE_COOKIE)
+    result = await handle_google_callback(code, state, cookie_nonce)
+
+    response.delete_cookie(OAUTH_STATE_COOKIE)
+
+    return result
 
 
 @router.post(

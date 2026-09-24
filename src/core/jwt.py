@@ -11,6 +11,7 @@ from core.config import (
     JWT_ALGORITHM,
     JWT_SECRET_KEY,
     MFA_TOKEN_EXPIRE,
+    OAUTH_STATE_TOKEN_EXPIRE,
     REFRESH_TOKEN_EXPIRE,
 )
 
@@ -114,6 +115,37 @@ def verify_mfa_token(token: str) -> dict:
         raise ValueError("Invalid MFA token")
 
     if "sub" not in payload:
+        raise ValueError("Invalid token payload")
+
+    return payload
+
+
+def create_oauth_state_token(nonce_hash: str) -> str:
+
+    now = datetime.now(timezone.utc)
+
+    payload = {
+        "type": "oauth_state",
+        "nonce_hash": nonce_hash,
+        "iat": now,
+        "exp": now + OAUTH_STATE_TOKEN_EXPIRE,
+    }
+
+    return jwt.encode(
+        payload,
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
+
+
+def verify_oauth_state_token(token: str) -> dict:
+
+    payload = _decode_token(token)
+
+    if payload.get("type") != "oauth_state":
+        raise ValueError("Invalid OAuth state token")
+
+    if "nonce_hash" not in payload:
         raise ValueError("Invalid token payload")
 
     return payload

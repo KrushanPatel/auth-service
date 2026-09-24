@@ -25,7 +25,7 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
@@ -34,7 +34,8 @@ CREATE TABLE users (
     tokens_valid_after TIMESTAMPTZ,
     mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     mfa_secret TEXT,
-    role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))
+    role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+    google_id TEXT UNIQUE
 );
 
 CREATE TABLE refresh_tokens (

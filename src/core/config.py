@@ -19,6 +19,7 @@ REFRESH_TOKEN_EXPIRE = timedelta(days=7)
 PASSWORD_RESET_TOKEN_EXPIRE = timedelta(minutes=30)
 EMAIL_VERIFICATION_TOKEN_EXPIRE = timedelta(hours=24)
 MFA_TOKEN_EXPIRE = timedelta(minutes=5)
+OAUTH_STATE_TOKEN_EXPIRE = timedelta(minutes=5)
 
 DEFAULT_MFA_ENCRYPTION_KEY = "Czneppg-5qf_1mPXKrnuDDhPpt9F5S7IyubAsptiYCE="
 MFA_ENCRYPTION_KEY = os.getenv("MFA_ENCRYPTION_KEY", DEFAULT_MFA_ENCRYPTION_KEY)
@@ -35,4 +36,10 @@ PASSWORD_RESET_URL_BASE = os.getenv(
 )
 EMAIL_VERIFICATION_URL_BASE = os.getenv(
     "EMAIL_VERIFICATION_URL_BASE", "http://localhost:3000/verify-email"
+)
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/v1/auth/oauth/google/callback"
 )
