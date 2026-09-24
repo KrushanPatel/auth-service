@@ -21,6 +21,8 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
+COPY alembic.ini ./
+COPY alembic ./alembic
 
 RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin appuser \
     && chown -R appuser:appuser /app
