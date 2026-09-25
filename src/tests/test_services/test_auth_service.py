@@ -85,7 +85,12 @@ async def test_register_user_duplicate_username(monkeypatch):
     assert exc_info.value.status_code == 409
 
 
-async def test_login_user_success(monkeypatch):
+def only_audit_event(audit_events):
+    audit_events.assert_awaited_once()
+    return audit_events.await_args.kwargs
+
+
+async def test_login_user_success(monkeypatch, audit_events):
     monkeypatch.setattr(auth_service, "get_user_by_email", AsyncMock(return_value=make_user()))
     store_refresh_token = AsyncMock(return_value=None)
     monkeypatch.setattr(auth_service, "store_refresh_token", store_refresh_token)
@@ -99,9 +104,13 @@ async def test_login_user_success(monkeypatch):
     assert result["refresh_token"]
     store_refresh_token.assert_awaited_once()
     assert store_refresh_token.await_args.kwargs["user_id"] == USER_ID
+    event = only_audit_event(audit_events)
+    assert event["event_type"] == "login_success"
+    assert event["user_id"] == USER_ID
+    assert event["metadata"] == {"method": "password"}
 
 
-async def test_login_user_unknown_email(monkeypatch):
+async def test_login_user_unknown_email(monkeypatch, audit_events):
     monkeypatch.setattr(auth_service, "get_user_by_email", AsyncMock(return_value=None))
 
     with pytest.raises(HTTPException) as exc_info:
@@ -110,9 +119,13 @@ async def test_login_user_unknown_email(monkeypatch):
         )
 
     assert exc_info.value.status_code == 401
+    event = only_audit_event(audit_events)
+    assert event["event_type"] == "login_failure"
+    assert event["user_id"] is None
+    assert event["metadata"] == {"reason": "unknown_account"}
 
 
-async def test_login_user_inactive_account(monkeypatch):
+async def test_login_user_inactive_account(monkeypatch, audit_events):
     monkeypatch.setattr(
         auth_service, "get_user_by_email", AsyncMock(return_value=make_user(is_active=False))
     )
@@ -123,9 +136,10 @@ async def test_login_user_inactive_account(monkeypatch):
         )
 
     assert exc_info.value.status_code == 403
+    assert only_audit_event(audit_events)["metadata"] == {"reason": "account_disabled"}
 
 
-async def test_login_user_unverified_rejected(monkeypatch):
+async def test_login_user_unverified_rejected(monkeypatch, audit_events):
     monkeypatch.setattr(
         auth_service, "get_user_by_email", AsyncMock(return_value=make_user(is_verified=False))
     )
@@ -136,9 +150,10 @@ async def test_login_user_unverified_rejected(monkeypatch):
         )
 
     assert exc_info.value.status_code == 403
+    assert only_audit_event(audit_events)["metadata"] == {"reason": "email_unverified"}
 
 
-async def test_login_user_mfa_enabled_returns_mfa_token(monkeypatch):
+async def test_login_user_mfa_enabled_returns_mfa_token(monkeypatch, audit_events):
     monkeypatch.setattr(
         auth_service, "get_user_by_email", AsyncMock(return_value=make_user(mfa_enabled=True))
     )
@@ -152,9 +167,10 @@ async def test_login_user_mfa_enabled_returns_mfa_token(monkeypatch):
     assert result == {"mfa_required": True, "mfa_token": result["mfa_token"]}
     assert result["mfa_token"]
     store_refresh_token.assert_not_awaited()
+    audit_events.assert_not_awaited()
 
 
-async def test_login_user_wrong_password(monkeypatch):
+async def test_login_user_wrong_password(monkeypatch, audit_events):
     monkeypatch.setattr(auth_service, "get_user_by_email", AsyncMock(return_value=make_user()))
 
     with pytest.raises(HTTPException) as exc_info:
@@ -163,6 +179,9 @@ async def test_login_user_wrong_password(monkeypatch):
         )
 
     assert exc_info.value.status_code == 401
+    event = only_audit_event(audit_events)
+    assert event["user_id"] == USER_ID
+    assert event["metadata"] == {"reason": "invalid_password"}
 
 
 async def test_update_user_service_excludes_none_fields(monkeypatch):
@@ -185,23 +204,40 @@ async def test_list_users_service_returns_repository_result(monkeypatch):
     assert result == [{"id": USER_ID, "username": "krushan"}]
 
 
-async def test_update_user_role_service_success(monkeypatch):
+async def test_update_user_role_service_success(monkeypatch, audit_events):
+    actor_id = uuid4()
+    monkeypatch.setattr(
+        auth_service, "get_user_by_id", AsyncMock(return_value=make_user(role="user"))
+    )
     update_user_role = AsyncMock(return_value={"id": str(USER_ID), "role": "admin"})
     monkeypatch.setattr(auth_service, "update_user_role", update_user_role)
 
-    result = await auth_service.update_user_role_service(str(USER_ID), "admin")
+    result = await auth_service.update_user_role_service(str(USER_ID), "admin", actor_id)
 
     update_user_role.assert_awaited_once_with(str(USER_ID), "admin")
     assert result["role"] == "admin"
+    audit_events.assert_awaited_once()
+    event = audit_events.await_args.kwargs
+    assert event["event_type"] == "role_changed"
+    assert event["user_id"] == USER_ID
+    assert event["metadata"] == {
+        "actor_id": str(actor_id),
+        "old_role": "user",
+        "new_role": "admin",
+    }
 
 
-async def test_update_user_role_service_missing_user(monkeypatch):
-    monkeypatch.setattr(auth_service, "update_user_role", AsyncMock(return_value=None))
+async def test_update_user_role_service_missing_user(monkeypatch, audit_events):
+    monkeypatch.setattr(auth_service, "get_user_by_id", AsyncMock(return_value=None))
+    update_user_role = AsyncMock()
+    monkeypatch.setattr(auth_service, "update_user_role", update_user_role)
 
     with pytest.raises(HTTPException) as exc_info:
-        await auth_service.update_user_role_service(str(USER_ID), "admin")
+        await auth_service.update_user_role_service(str(USER_ID), "admin", uuid4())
 
     assert exc_info.value.status_code == 404
+    update_user_role.assert_not_awaited()
+    audit_events.assert_not_awaited()
 
 
 async def test_logout_user_revokes_token(monkeypatch):
