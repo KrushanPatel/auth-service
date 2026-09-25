@@ -18,6 +18,7 @@ TEST_DB_NAME = os.getenv("TEST_DB_NAME", "auth_test")
 TEST_REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6380/0")
 
 SCHEMA_SQL = """
+DROP TABLE IF EXISTS audit_events;
 DROP TABLE IF EXISTS email_verifications;
 DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS mfa_recovery_codes;
@@ -77,6 +78,20 @@ CREATE TABLE mfa_recovery_codes (
     used BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE audit_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    event_type TEXT NOT NULL CONSTRAINT ck_audit_events_event_type CHECK (event_type IN (
+        'login_success', 'login_failure', 'logout', 'refresh_token_reuse_detected',
+        'password_reset_completed', 'mfa_enabled', 'mfa_disabled', 'role_changed',
+        'oauth_account_linked'
+    )),
+    ip TEXT,
+    user_agent TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 """
 
 
@@ -113,7 +128,7 @@ async def test_pool():
 async def clean_db(test_pool):
     async with test_pool.acquire() as conn:
         await conn.execute(
-            "TRUNCATE TABLE email_verifications, password_resets,"
+            "TRUNCATE TABLE audit_events, email_verifications, password_resets,"
             " mfa_recovery_codes, refresh_tokens, users RESTART IDENTITY CASCADE;"
         )
     yield

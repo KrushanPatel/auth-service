@@ -42,6 +42,7 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 * OAuth2 / Social Login (Google, auto-link by verified email)
 * Redis integration (rate limiting)
 * CD pipeline (deploy on merge, via GitHub Actions OIDC + ECS)
+* Security audit log (admin-readable)
 
 ### 🚧 Planned
 
