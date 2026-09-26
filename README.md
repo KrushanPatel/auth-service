@@ -13,6 +13,33 @@ A lightweight, production-ready authentication microservice built with **FastAPI
 
 ---
 
+## Quickstart
+
+Prerequisites: Python 3.14+, [uv](https://docs.astral.sh/uv/), and Docker Compose.
+From a fresh clone, start the local PostgreSQL and Redis services, install the
+dependencies, apply the migrations, and run the API:
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.test.yml up -d
+uv sync
+uv run alembic upgrade head
+REDIS_URL=redis://localhost:6380/0 uv run uvicorn src.main:app --reload
+```
+
+The Compose file starts disposable local services; the Redis URL override uses
+its published port. Open <http://localhost:8000/docs> to explore the API.
+
+## Features
+
+- Refresh-token rotation with reuse detection
+- TOTP multi-factor authentication
+- Google OAuth sign-in
+- Redis-backed rate limiting
+- Role-based access control (RBAC)
+
+---
+
 ## Documentation
 
 * **[ABOUT.md](ABOUT.md)** – What this project is, implemented/planned features, tech stack.
