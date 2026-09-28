@@ -136,7 +136,7 @@ async def test_verify_mfa_login_rejects_when_mfa_not_enabled(monkeypatch):
     assert exc_info.value.status_code == 401
 
 
-async def test_verify_mfa_login_accepts_valid_totp_code(monkeypatch):
+async def test_verify_mfa_login_accepts_valid_totp_code(monkeypatch, audit_events):
     secret = pyotp.random_base32()
     user = _user(mfa_enabled=True, mfa_secret="encrypted-secret")
     monkeypatch.setattr(mfa_service, "get_user_by_id", AsyncMock(return_value=user))
@@ -150,9 +150,12 @@ async def test_verify_mfa_login_accepts_valid_totp_code(monkeypatch):
     assert result["token_type"] == "bearer"
     assert result["access_token"]
     assert result["refresh_token"]
+    audit_events.assert_awaited_once()
+    assert audit_events.await_args.kwargs["event_type"] == "login_success"
+    assert audit_events.await_args.kwargs["metadata"] == {"method": "mfa_totp"}
 
 
-async def test_verify_mfa_login_accepts_valid_recovery_code(monkeypatch):
+async def test_verify_mfa_login_accepts_valid_recovery_code(monkeypatch, audit_events):
     secret = pyotp.random_base32()
     user = _user(mfa_enabled=True, mfa_secret="encrypted-secret")
     monkeypatch.setattr(mfa_service, "get_user_by_id", AsyncMock(return_value=user))
@@ -168,9 +171,11 @@ async def test_verify_mfa_login_accepts_valid_recovery_code(monkeypatch):
 
     assert result["access_token"]
     mark_used.assert_awaited_once()
+    audit_events.assert_awaited_once()
+    assert audit_events.await_args.kwargs["metadata"] == {"method": "mfa_recovery_code"}
 
 
-async def test_verify_mfa_login_rejects_invalid_code(monkeypatch):
+async def test_verify_mfa_login_rejects_invalid_code(monkeypatch, audit_events):
     secret = pyotp.random_base32()
     user = _user(mfa_enabled=True, mfa_secret="encrypted-secret")
     monkeypatch.setattr(mfa_service, "get_user_by_id", AsyncMock(return_value=user))
@@ -181,3 +186,6 @@ async def test_verify_mfa_login_rejects_invalid_code(monkeypatch):
         await mfa_service.verify_mfa_login(str(user["id"]), "000000")
 
     assert exc_info.value.status_code == 401
+    audit_events.assert_awaited_once()
+    assert audit_events.await_args.kwargs["event_type"] == "login_failure"
+    assert audit_events.await_args.kwargs["metadata"] == {"reason": "invalid_mfa_code"}

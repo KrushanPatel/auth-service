@@ -14,6 +14,7 @@ from repositories.password_reset_repository import (
 )
 from repositories.refresh_token_repository import revoke_all_refresh_token_for_user
 from repositories.user_repository import get_user_by_email, update_user
+from services.audit_service import record_event
 
 
 async def request_password_reset(email: str) -> str | None:
@@ -66,6 +67,7 @@ async def reset_password(token: str, new_password: str) -> None:
     await update_user(str(db_token["user_id"]), password_hash=hash_password(new_password))
     await mark_password_reset_token_used(db_token["id"])
     await revoke_all_refresh_token_for_user(db_token["user_id"])
+    await record_event("password_reset_completed", db_token["user_id"])
 
 
 async def cleanup_expired_password_reset_tokens():

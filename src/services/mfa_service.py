@@ -19,6 +19,7 @@ from repositories.mfa_repository import (
 )
 from repositories.refresh_token_repository import revoke_all_refresh_token_for_user
 from repositories.user_repository import get_user_by_id, update_user
+from services.audit_service import record_event
 from services.refresh_token_service import store_refresh_token
 
 
@@ -64,6 +65,7 @@ async def confirm_mfa_enrollment(user: dict, code: str) -> list[str]:
     await insert_recovery_codes(
         user["id"], [hash_reset_token(raw_code) for raw_code in recovery_codes]
     )
+    await record_event("mfa_enabled", user["id"])
 
     return recovery_codes
 
@@ -79,6 +81,7 @@ async def disable_mfa(user: dict, password: str) -> None:
     await delete_recovery_codes(user["id"])
     await revoke_all_refresh_token_for_user(user["id"])
     await update_user(str(user["id"]), tokens_valid_after=datetime.now(timezone.utc))
+    await record_event("mfa_disabled", user["id"])
 
 
 async def verify_mfa_login(user_id: str, code: str) -> dict:
@@ -88,17 +91,21 @@ async def verify_mfa_login(user_id: str, code: str) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token")
 
     secret = decrypt_secret(user["mfa_secret"])
+    method = "mfa_totp"
 
     if not pyotp.TOTP(secret).verify(code, valid_window=TOTP_VALID_WINDOW):
         recovery_code = await get_recovery_code_by_hash(user["id"], hash_reset_token(code))
         if recovery_code is None:
+            await record_event("login_failure", user["id"], reason="invalid_mfa_code")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
         await mark_recovery_code_used(recovery_code["id"])
+        method = "mfa_recovery_code"
 
     access_token = create_access_token(str(user["id"]))
     refresh_token, jti = create_refresh_token(str(user["id"]))
 
     await store_refresh_token(user_id=user["id"], refresh_token=refresh_token, jti=jti)
+    await record_event("login_success", user["id"], method=method)
 
     return {
         "access_token": access_token,

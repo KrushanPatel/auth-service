@@ -15,6 +15,7 @@ from repositories.refresh_token_repository import (
     revoke_refresh_token_by_jti,
     update_refresh_token_last_used,
 )
+from services.audit_service import record_event
 from services.email_verification_service import cleanup_expired_email_verification_tokens
 from services.password_reset_service import cleanup_expired_password_reset_tokens
 
@@ -58,6 +59,7 @@ async def validate_refresh_token(
 
     if db_token["revoked"]:
         await revoke_all_refresh_token_for_user(UUID(payload["sub"]))
+        await record_event("refresh_token_reuse_detected", payload["sub"])
         raise ValueError("Refresh token reuse detected")
     if db_token["expires_at"] < datetime.now(timezone.utc):
         raise ValueError("Refresh token has expired")

@@ -34,6 +34,7 @@
 * OAuth2 / Social Login (Google, auto-link by verified email)
 * Redis Integration (rate limiting)
 * CD Pipeline (deploy on merge, via GitHub Actions OIDC + ECS)
+* Security Audit Log (logins, logout, refresh-token reuse, password reset, MFA, role changes, OAuth linking; admin read endpoint)
 
 ---
 

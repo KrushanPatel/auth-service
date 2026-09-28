@@ -137,6 +137,7 @@ http://localhost:8000/redoc
 | PATCH  | `/api/v1/users`                | Update current user profile      | Yes            |
 | GET    | `/api/v1/admin/users`          | List all users                   | Yes (admin)    |
 | PATCH  | `/api/v1/admin/users/{id}/role` | Change a user's role            | Yes (admin)    |
+| GET    | `/api/v1/admin/audit-events`   | List security audit events       | Yes (admin)    |
 | GET    | `/health`                      | Health check (with DB status)    | No             |
 
 `/register`, `/login`, `/forgot-password`, `/resend-verification`, `/mfa/verify`, and `/oauth/google/login`+`/callback` are rate limited by client IP, and (except `/register`) by the target account — see [ARCHITECTURE.md](ARCHITECTURE.md#security).
@@ -288,6 +289,15 @@ curl -X PATCH http://localhost:8000/api/v1/admin/users/<user-id>/role \
 ```
 
 A non-admin caller gets `403`. Role changes are read fresh from the database on every request, so a promoted/demoted user's access changes on their very next request — no need to log out and back in.
+
+### List Audit Events (admin only)
+
+```bash
+curl "http://localhost:8000/api/v1/admin/audit-events?event_type=login_failure&limit=50" \
+-H "Authorization: Bearer <admin-jwt>"
+```
+
+Newest first. Optional filters: `user_id`, `event_type`, `before` (ISO timestamp, for paging past the oldest event you've seen), and `limit` (1–200, default 50).
 
 ---
 

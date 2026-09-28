@@ -12,6 +12,7 @@ from api.v1.users import router as users_router
 from core.email import validate_email_config
 from core.google_oauth import validate_google_oauth_config
 from core.mfa_crypto import validate_mfa_config
+from core.request_context import capture_request_context
 from db.connection import close_pool, create_pool
 from db.redis_connection import close_redis_client, create_redis_client, validate_redis_config
 from services.refresh_token_service import cleanup_task
@@ -41,6 +42,8 @@ app = FastAPI(
     title="Auth Service",
     lifespan=lifespan,
 )
+
+app.middleware("http")(capture_request_context)
 
 app.include_router(
     health_router,

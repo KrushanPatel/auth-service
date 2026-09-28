@@ -20,6 +20,7 @@ from repositories.user_repository import (
     get_user_by_username,
     link_google_id,
 )
+from services.audit_service import record_event
 from services.refresh_token_service import store_refresh_token
 
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -132,6 +133,7 @@ async def handle_google_callback(code: str, state: str, cookie_nonce: str | None
 
         if user:
             user = await link_google_id(str(user["id"]), google_id)
+            await record_event("oauth_account_linked", user["id"], provider="google")
         else:
             username = await _unique_username(email)
             user = await create_oauth_user(
@@ -160,6 +162,8 @@ async def handle_google_callback(code: str, state: str, cookie_nonce: str | None
         refresh_token=refresh_token,
         jti=jti,
     )
+
+    await record_event("login_success", user["id"], method="google")
 
     return {
         "access_token": access_token,
